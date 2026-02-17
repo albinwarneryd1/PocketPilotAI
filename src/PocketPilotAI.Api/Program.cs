@@ -51,6 +51,12 @@ app.Run();
 
 static async Task ApplyDatabaseAsync(WebApplication app)
 {
+  bool applyMigrationsOnStartup = app.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true);
+  if (!applyMigrationsOnStartup)
+  {
+    return;
+  }
+
   using IServiceScope scope = app.Services.CreateScope();
   AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -62,4 +68,8 @@ static async Task ApplyDatabaseAsync(WebApplication app)
     IDemoDataSeeder seeder = scope.ServiceProvider.GetRequiredService<IDemoDataSeeder>();
     await seeder.SeedAsync();
   }
+}
+
+public partial class Program
+{
 }

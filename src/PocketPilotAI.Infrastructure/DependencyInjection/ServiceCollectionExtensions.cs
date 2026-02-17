@@ -14,13 +14,29 @@ public static class ServiceCollectionExtensions
   {
     string? connectionString = configuration.GetConnectionString("DefaultConnection")
       ?? configuration["POCKETPILOTAI_CONNECTION"];
+    string provider = (configuration["Database:Provider"] ?? "sqlserver").Trim().ToLowerInvariant();
 
     if (string.IsNullOrWhiteSpace(connectionString))
     {
       throw new InvalidOperationException("Missing connection string. Configure ConnectionStrings:DefaultConnection or POCKETPILOTAI_CONNECTION.");
     }
 
-    services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+    services.AddDbContext<AppDbContext>(options =>
+    {
+      if (provider == "sqlite")
+      {
+        options.UseSqlite(connectionString);
+        return;
+      }
+
+      if (provider == "sqlserver")
+      {
+        options.UseSqlServer(connectionString);
+        return;
+      }
+
+      throw new InvalidOperationException("Unsupported database provider. Use Database:Provider = sqlserver or sqlite.");
+    });
 
     services.AddHttpClient<OpenAiClient>();
 

@@ -1,0 +1,34 @@
+## Build output
+bin/
+obj/
+out/
+
+## User-specific
+*.user
+*.suo
+*.swp
+.DS_Store
+
+## IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+
+## MAUI artifacts
+*.apk
+*.aab
+*.ipa
+
+## Environment
+.env
+.env.local
+
+## EF and logs
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+## Test artifacts
+TestResults/
+coverage/

@@ -1,0 +1,4 @@
+Date,Merchant,Category,Amount,Currency,Account,Type,Notes
+2026-02-01,Local Market,Groceries,-549.00,SEK,Main Card,Expense,Weekly groceries
+2026-02-02,Salary AB,Income,32000.00,SEK,Main Account,Income,Monthly salary
+2026-02-03,Transit,Transport,-995.00,SEK,Main Card,Expense,Monthly pass

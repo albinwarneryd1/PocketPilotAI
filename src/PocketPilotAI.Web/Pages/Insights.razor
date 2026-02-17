@@ -1,10 +1,14 @@
 @page "/insights"
 @inject InsightsApi InsightsApi
+@inject UserSessionState Session
+@inject NavigationManager NavigationManager
 
 <h2>AI Coach</h2>
 <p class="muted">Concrete, data-driven suggestions from your recent spending.</p>
 
-<button class="btn-primary" @onclick="LoadInsights">Generate Leak Insights</button>
+<div class="action-row">
+  <button class="btn-primary" @onclick="LoadInsights">Generate Leak Insights</button>
+</div>
 
 @if (!cards.Any())
 {
@@ -25,8 +29,115 @@ else
   </div>
 }
 
+<section class="panel">
+  <h3>What-if simulation</h3>
+  <p class="muted">Model monthly impact before changing your habits.</p>
+
+  <div class="form-grid">
+    <label>
+      Scenario name
+      <InputText @bind-Value="scenarioName" />
+    </label>
+
+    <label>
+      Year
+      <InputNumber @bind-Value="year" />
+    </label>
+
+    <label>
+      Month
+      <InputNumber @bind-Value="month" />
+    </label>
+
+    <label>
+      Action type
+      <InputSelect @bind-Value="selectedType">
+        @foreach (var template in templates)
+        {
+          <option value="@template.ActionType">@template.Name</option>
+        }
+      </InputSelect>
+    </label>
+
+    <label>
+      Category
+      <InputText @bind-Value="categoryName" />
+    </label>
+
+    <label>
+      Value
+      <InputNumber @bind-Value="actionValue" />
+    </label>
+  </div>
+
+  <button class="btn-primary" @onclick="RunSimulation">Run simulation</button>
+
+  @if (simulation is not null)
+  {
+    <div class="whatif-grid">
+      <article class="insight-card">
+        <h4>Baseline</h4>
+        <p>Income: @simulation.Baseline.Income.ToString("0") SEK</p>
+        <p>Expenses: @simulation.Baseline.Expenses.ToString("0") SEK</p>
+        <p>Net: @simulation.Baseline.Net.ToString("0") SEK</p>
+      </article>
+
+      <article class="insight-card">
+        <h4>Simulated</h4>
+        <p>Income: @simulation.Simulated.Income.ToString("0") SEK</p>
+        <p>Expenses: @simulation.Simulated.Expenses.ToString("0") SEK</p>
+        <p>Net: @simulation.Simulated.Net.ToString("0") SEK</p>
+      </article>
+
+      <article class="insight-card">
+        <h4>Delta</h4>
+        <p>Income delta: @simulation.Delta.IncomeDelta.ToString("0") SEK</p>
+        <p>Expense delta: @simulation.Delta.ExpenseDelta.ToString("0") SEK</p>
+        <p>Net delta: @simulation.Delta.NetDelta.ToString("0") SEK</p>
+      </article>
+    </div>
+
+    <article class="insight-card" style="margin-top: 0.8rem;">
+      <h4>Recommendations</h4>
+      <ul>
+        @foreach (var recommendation in simulation.Recommendations)
+        {
+          <li>@recommendation</li>
+        }
+      </ul>
+      <p><strong>Explanation:</strong> @simulation.Explanation</p>
+    </article>
+  }
+</section>
+
 @code {
   private IReadOnlyList<InsightCardDto> cards = [];
+  private IReadOnlyList<WhatIfScenarioTemplateDto> templates = [];
+  private WhatIfSimulationResultDto? simulation;
+
+  private string scenarioName = "Test Scenario";
+  private int year = DateTime.UtcNow.Year;
+  private int month = DateTime.UtcNow.Month;
+  private WhatIfActionType selectedType = WhatIfActionType.ReduceCategoryPercent;
+  private string categoryName = "Eating Out";
+  private decimal actionValue = 15;
+
+  protected override async Task OnInitializedAsync()
+  {
+    if (!Session.IsAuthenticated)
+    {
+      NavigationManager.NavigateTo("/login", forceLoad: true);
+      return;
+    }
+
+    templates = await InsightsApi.GetWhatIfTemplatesAsync();
+    if (templates.Any())
+    {
+      selectedType = templates[0].ActionType;
+      categoryName = templates[0].SuggestedCategory;
+      actionValue = templates[0].SuggestedValue;
+    }
+  }
 
   private async Task LoadInsights()
   {
@@ -35,6 +146,29 @@ else
       FromUtc = DateTime.UtcNow.AddMonths(-1),
       ToUtc = DateTime.UtcNow,
       MaxSuggestions = 3
+    });
+  }
+
+  private async Task RunSimulation()
+  {
+    simulation = await InsightsApi.SimulateAsync(new WhatIfSimulationRequest
+    {
+      ScenarioName = scenarioName,
+      Year = year,
+      Month = month,
+      Actions =
+      [
+        new WhatIfActionDto
+        {
+          Type = selectedType,
+          Label = selectedType.ToString(),
+          CategoryName = categoryName,
+          Value = actionValue,
+          TransactionType = selectedType == WhatIfActionType.AddRecurringIncome ? PocketPilotAI.Core.Domain.Enums.TransactionType.Income : PocketPilotAI.Core.Domain.Enums.TransactionType.Expense,
+          IsRecurring = selectedType != WhatIfActionType.AddOneOffTransaction,
+          EffectiveDateUtc = DateTime.UtcNow
+        }
+      ]
     });
   }
 }

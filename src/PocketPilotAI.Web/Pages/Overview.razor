@@ -2,12 +2,12 @@
 @page "/overview"
 @inject UserSessionState Session
 
-<div class="page-stack">
+<div class="page-stack decision-flow">
   <section class="page-head">
     <div class="page-head-copy">
       <p class="page-kicker">Overview</p>
-      <h2 class="page-title">Financial health for @displayName</h2>
-      <p class="muted">A calm monthly snapshot with one clear next move.</p>
+      <h2 class="page-title">Your monthly status</h2>
+      <p class="muted">One outcome, one recommendation, one next step.</p>
     </div>
 
     <select class="month-selector" value="@selectedMonthKey" @onchange="OnMonthChanged" aria-label="Month selector">
@@ -18,60 +18,43 @@
     </select>
   </section>
 
-  <MetricHero
-    Eyebrow="Financial health score"
-    Title="@selectedPeriodTitle"
-    Subtitle="Score combines net cash flow, budget discipline and recurring-cost pressure."
-    MicroExplanation="@healthSummary"
-    Score="healthScore"
-    ValueLabel="@($"Income {income:0} SEK • Expenses {expenses:0} SEK")"
-    PrimaryActionLabel="Open what-if"
-    PrimaryActionHref="/insights"
-    SparklinePoints="sparklinePoints" />
+  <HeroCard AdditionalClass="decision-hero card-rise">
+    <p class="decision-kicker">Current status</p>
+    <h3 class="decision-value">@healthScore / 100</h3>
+    <p class="decision-subtitle">@healthSummary</p>
+
+    <div class="action-row">
+      <a class="btn-primary" href="/insights">Open what-if</a>
+      <a class="btn-secondary" href="#overview-details">See details</a>
+    </div>
+
+    @if (actionChips.Any())
+    {
+      <div class="outcome-chip-row">
+        @foreach (var chip in actionChips)
+        {
+          <span class="outcome-chip">@chip</span>
+        }
+      </div>
+    }
+  </HeroCard>
 
   <AIExplanationBlock
     Title="Monthly narrative"
     Body="@monthlyNarrative"
     IsLoading="@isLoadingNarrative" />
 
-  <section class="panel">
-    <div class="section-header">
-      <div class="section-header-copy">
-        <h3 class="section-title">Leak opportunities</h3>
-        <p class="muted">Actionable categories with measurable monthly impact.</p>
-      </div>
-
-      <div class="badge-row">
-        @foreach (var badge in patternBadges)
-        {
-          <TrendBadge Label="@badge.Label" Variant="@badge.Variant" />
-        }
-      </div>
-    </div>
-
-    @if (!leakCards.Any())
-    {
-      <InlineCard AdditionalClass="card-rise">
-        <p class="muted">No leak opportunities found for this month yet.</p>
-      </InlineCard>
-    }
-    else
-    {
-      <div class="scroll-row">
-        @foreach (var card in leakCards)
-        {
-          <InsightCard Item="card" ActionLabel="View" ActionHref="/insights" />
-        }
-      </div>
-    }
-  </section>
+  <RecommendationCard
+    Title="Next best move"
+    Description="@primaryRecommendation"
+    ImpactText="@($"This could save about {estimatedImpact:0} SEK/month")"
+    CtaLabel="Start a plan"
+    CtaHref="/insights" />
 
   <section class="panel">
-    <div class="section-header">
-      <div class="section-header-copy">
-        <h3 class="section-title">Spending trend</h3>
-        <p class="muted">Last 6 months. Smooth pacing is usually better than sharp spikes.</p>
-      </div>
+    <div class="section-header-copy">
+      <h3 class="section-title">Spending trend</h3>
+      <p class="muted">Single chart to show your pace over time.</p>
     </div>
 
     @if (!trendItems.Any())
@@ -94,16 +77,48 @@
     }
   </section>
 
-  <RecommendationCard
-    Title="Start your 30-day improvement plan"
-    Description="@primaryRecommendation"
-    ImpactText="@($"Potential gain: {estimatedImpact:0} SEK/month")"
-    CtaLabel="Apply top recommendation"
-    CtaHref="/insights" />
+  <details class="decision-details" id="overview-details">
+    <summary>Supporting details</summary>
+    <div class="decision-details-body">
+      <section class="panel">
+        <div class="section-header-copy">
+          <h3 class="section-title">Leak opportunities</h3>
+          <p class="muted">Detailed insights you can apply this month.</p>
+        </div>
 
-  <div class="primary-footer-cta">
-    <a class="btn-primary" href="/insights">Start a plan</a>
-  </div>
+        @if (!leakCards.Any())
+        {
+          <p class="muted">No leak opportunities found for this month yet.</p>
+        }
+        else
+        {
+          <div class="insight-grid">
+            @foreach (var card in leakCards.Take(4))
+            {
+              <InsightCard Item="card" ActionLabel="Review" ActionHref="/transactions" />
+            }
+          </div>
+        }
+      </section>
+
+      <section class="panel">
+        <div class="kpi-grid">
+          <BaseCard>
+            <p class="metric-eyebrow">Income</p>
+            <strong>@income.ToString("0") SEK</strong>
+          </BaseCard>
+          <BaseCard>
+            <p class="metric-eyebrow">Expenses</p>
+            <strong>@expenses.ToString("0") SEK</strong>
+          </BaseCard>
+          <BaseCard>
+            <p class="metric-eyebrow">Remaining budget</p>
+            <strong>@remainingBudget.ToString("0") SEK</strong>
+          </BaseCard>
+        </div>
+      </section>
+    </div>
+  </details>
 </div>
 
 @code {
@@ -111,20 +126,12 @@
   [Inject] private BudgetsApi BudgetsApi { get; set; } = default!;
   [Inject] private InsightsApi InsightsApi { get; set; } = default!;
 
-  private string displayName = "there";
-
   private IReadOnlyList<TransactionDto> allTransactions = [];
   private IReadOnlyList<InsightCardDto> leakCards = [];
   private IReadOnlyList<TrendItem> trendItems = [];
-  private IReadOnlyList<decimal> sparklinePoints = [];
-  private IReadOnlyList<TrendBadgeItem> patternBadges = [];
   private IReadOnlyList<MonthOption> monthOptions = [];
 
   private string selectedMonthKey = string.Empty;
-  private string selectedPeriodTitle = string.Empty;
-
-  private int healthScore;
-  private string healthSummary = "Score pending";
   private string monthlyNarrative = string.Empty;
   private bool isLoadingNarrative = true;
 
@@ -135,13 +142,15 @@
   private decimal trendMax;
   private decimal estimatedImpact;
 
-  private string primaryRecommendation = "Cap one rising category and simulate the next 30 days.";
+  private int healthScore;
+  private string healthSummary = "Score pending";
+  private string primaryRecommendation = "Open what-if and apply one scenario this month.";
+  private IReadOnlyList<string> actionChips = [];
 
   protected override async Task OnInitializedAsync()
   {
-    displayName = string.IsNullOrWhiteSpace(Session.DisplayName) ? "there" : Session.DisplayName;
-
     allTransactions = await TransactionsApi.GetAsync();
+
     monthOptions = BuildMonthOptions(allTransactions);
     selectedMonthKey = monthOptions.FirstOrDefault()?.Key ?? BuildKey(DateTime.UtcNow.Year, DateTime.UtcNow.Month);
 
@@ -166,8 +175,6 @@
     DateTime periodStart = new(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
     DateTime periodEnd = periodStart.AddMonths(1).AddTicks(-1);
 
-    selectedPeriodTitle = periodStart.ToString("MMMM yyyy");
-
     IReadOnlyList<TransactionDto> periodTransactions = allTransactions
       .Where(x => x.DateUtc.Year == year && x.DateUtc.Month == month)
       .ToList();
@@ -191,12 +198,10 @@
     recurringShare = expenses <= 0 ? 0 : recurringExpense / expenses;
 
     healthScore = BuildHealthScore(income, expenses, remainingBudget, recurringShare);
-    healthSummary = BuildHealthSummary(healthScore, remainingBudget, recurringShare);
+    healthSummary = BuildHealthSummary(healthScore, income, expenses);
 
     trendItems = BuildTrend(allTransactions, periodStart);
     trendMax = trendItems.Any() ? trendItems.Max(x => x.Amount) : 0;
-    sparklinePoints = trendItems.Select(x => x.Amount).ToList();
-    patternBadges = BuildPatternBadges(periodTransactions, recurringShare);
 
     leakCards = await InsightsApi.GetLeakInsightsAsync(new LeakFinderRequest
     {
@@ -207,8 +212,12 @@
 
     estimatedImpact = leakCards.Sum(x => x.EstimatedMonthlySavings);
 
+    actionChips = leakCards
+      .Take(3)
+      .Select(x => x.SuggestedAction)
+      .ToList();
+
     isLoadingNarrative = true;
-    monthlyNarrative = string.Empty;
 
     IReadOnlyList<InsightCardDto> monthlySummary = await InsightsApi.GetMonthlySummaryAsync(new MonthlySummaryRequest
     {
@@ -218,13 +227,13 @@
 
     if (monthlySummary.Count > 0)
     {
-      monthlyNarrative = monthlySummary[0].Description;
-      primaryRecommendation = monthlySummary[0].SuggestedAction;
+      monthlyNarrative = RewriteNarrative(monthlySummary[0].Description);
+      primaryRecommendation = RewriteRecommendation(monthlySummary[0].SuggestedAction);
     }
     else
     {
-      monthlyNarrative = "No AI narrative available for this month yet.";
-      primaryRecommendation = "Run one what-if scenario and cap your fastest-growing category.";
+      monthlyNarrative = "You are ready to improve one category this month. Run a quick what-if to estimate the impact before acting.";
+      primaryRecommendation = "Reduce one high-growth category by 10-15% for the next 30 days.";
     }
 
     isLoadingNarrative = false;
@@ -242,20 +251,20 @@
     return (int)Math.Clamp(Math.Round(score), 0, 100);
   }
 
-  private static string BuildHealthSummary(int score, decimal remainingBudget, decimal recurringShare)
+  private static string BuildHealthSummary(int score, decimal income, decimal expenses)
   {
-    string level = score switch
+    if (income <= 0)
     {
-      >= 80 => "Strong trajectory.",
-      >= 60 => "Stable momentum.",
-      >= 40 => "Some pressure detected.",
-      _ => "High financial pressure."
-    };
+      return "No income registered for this month yet. Add income to unlock an accurate health score.";
+    }
 
-    string budgetState = remainingBudget >= 0 ? "Budget is still in control." : "Budget drift is visible.";
-    string recurringState = recurringShare > 0.4m ? "Recurring costs are heavy." : "Recurring costs are manageable.";
+    decimal net = income - expenses;
+    if (net >= 0)
+    {
+      return $"You are currently positive by {net:0} SEK this month.";
+    }
 
-    return $"{level} {budgetState} {recurringState}";
+    return $"You are currently overspending by {Math.Abs(net):0} SEK this month.";
   }
 
   private static IReadOnlyList<TrendItem> BuildTrend(IReadOnlyList<TransactionDto> transactions, DateTime anchorMonth)
@@ -274,35 +283,6 @@
     }
 
     return result;
-  }
-
-  private static IReadOnlyList<TrendBadgeItem> BuildPatternBadges(IReadOnlyList<TransactionDto> transactions, decimal recurringShare)
-  {
-    decimal weekendSpend = transactions
-      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
-      .Where(x => x.DateUtc.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-      .Sum(x => x.Amount);
-
-    decimal totalSpend = transactions
-      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
-      .Sum(x => x.Amount);
-
-    decimal weekendShare = totalSpend <= 0 ? 0 : weekendSpend / totalSpend;
-
-    TrendBadgeItem weekendBadge = new(
-      $"Weekend share {(weekendShare * 100m):0}%",
-      weekendShare > 0.38m ? "down" : "up");
-
-    TrendBadgeItem recurringBadge = new(
-      $"Recurring {(recurringShare * 100m):0}%",
-      recurringShare > 0.42m ? "down" : "up");
-
-    int uncategorizedCount = transactions.Count(x => string.IsNullOrWhiteSpace(x.CategoryName));
-    TrendBadgeItem qualityBadge = new(
-      uncategorizedCount > 0 ? $"{uncategorizedCount} uncategorized" : "Data quality good",
-      uncategorizedCount > 0 ? "down" : "up");
-
-    return [weekendBadge, recurringBadge, qualityBadge];
   }
 
   private static IReadOnlyList<MonthOption> BuildMonthOptions(IReadOnlyList<TransactionDto> transactions)
@@ -325,6 +305,19 @@
       .ToList();
   }
 
+  private static string RewriteNarrative(string narrative)
+    => string.IsNullOrWhiteSpace(narrative)
+      ? "No AI narrative available yet."
+      : narrative
+        .Replace("KPI", "key metric")
+        .Replace("baseline", "last month")
+        .Replace("simulated", "improved");
+
+  private static string RewriteRecommendation(string recommendation)
+    => string.IsNullOrWhiteSpace(recommendation)
+      ? "Run one scenario and apply the highest-impact action this week."
+      : recommendation;
+
   private static string BuildKey(int year, int month)
     => $"{year:D4}-{month:D2}";
 
@@ -340,8 +333,6 @@
   }
 
   private sealed record TrendItem(string Label, decimal Amount);
-
-  private sealed record TrendBadgeItem(string Label, string Variant);
 
   private sealed record MonthOption(string Key, string Label);
 }

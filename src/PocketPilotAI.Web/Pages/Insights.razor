@@ -2,234 +2,204 @@
 @inject InsightsApi InsightsApi
 @implements IDisposable
 
-<div class="page-stack">
+<div class="page-stack decision-flow">
   <section class="page-head">
     <div class="page-head-copy">
       <p class="page-kicker">AI coach</p>
-      <h2 class="page-title">Insights & what-if simulation</h2>
-      <p class="muted">Model decisions before you change behavior in real life.</p>
+      <h2 class="page-title">Decision assistant</h2>
+      <p class="muted">Understand the impact first, then act.</p>
     </div>
-
-    <a class="btn-primary" href="#whatif">Run scenario</a>
   </section>
 
-  @if (heroInsight is not null)
-  {
-    <HeroCard AdditionalClass="card-rise">
-      <div class="section-header">
-        <div class="section-header-copy">
-          <p class="metric-eyebrow">Top insight</p>
-          <h3>@heroInsight.Title</h3>
-          <p class="primary-copy">@heroInsight.Description</p>
-        </div>
+  <HeroCard AdditionalClass="decision-hero card-rise">
+    <p class="decision-kicker">Hero outcome</p>
+    <h3 class="decision-value">@heroOutcomeValue</h3>
+    <p class="decision-subtitle">@heroOutcomeSubtitle</p>
 
-        <TrendBadge Label="@($"{heroInsight.Confidence * 100m:0}% confidence")" Variant="neutral" />
-      </div>
-
-      <div class="action-row">
-        <span class="save-pill">~@heroInsight.EstimatedMonthlySavings.ToString("0") SEK/month potential</span>
-        <a class="btn-secondary" href="/transactions">Review transactions</a>
-      </div>
-
-      <RecommendationCard
-        Title="Action plan"
-        Description="@heroInsight.SuggestedAction"
-        ImpactText="@($"Estimated monthly impact: {heroInsight.EstimatedMonthlySavings:0} SEK")"
-        CtaLabel="Open transaction feed"
-        CtaHref="/transactions" />
-    </HeroCard>
-
-    <AIExplanationBlock
-      Title="Why this recommendation is prioritized"
-      Body="@topNarrative"
-      IsLoading="@isLoadingNarrative" />
-  }
-
-  <section class="panel" id="whatif">
-    <div class="section-header">
-      <div class="section-header-copy">
-        <h3 class="section-title">Live what-if simulator</h3>
-        <p class="muted">Change one variable and see the KPI delta instantly.</p>
-      </div>
-
-      <TrendBadge Label="Live updates" Variant="up" />
+    <div class="action-row">
+      <a class="btn-primary" href="/transactions">Apply scenario</a>
+      <a class="btn-secondary" href="#scenario-details">Adjust scenario</a>
     </div>
 
-    @if (templates.Any())
+    @if (outcomeChips.Any())
     {
-      <div class="preset-row">
-        @foreach (var template in templates)
+      <div class="outcome-chip-row">
+        @foreach (var chip in outcomeChips)
         {
-          <button type="button" class="preset-chip @(template.Name == selectedTemplateName ? "selected" : string.Empty)" @onclick="() => OnTemplateSelected(template)">
-            <span>@template.Name</span>
-            <small>@template.SuggestedCategory • @template.SuggestedValue.ToString("0.#")</small>
-          </button>
+          <span class="outcome-chip">@chip</span>
         }
       </div>
     }
+  </HeroCard>
 
-    <div class="form-grid">
-      <PremiumFormField Label="Scenario name">
-        <InputText @bind-Value="ScenarioNameInput" />
-      </PremiumFormField>
+  <AIExplanationBlock
+    Title="Why this matters"
+    Body="@humanExplanation"
+    IsLoading="@isLoadingNarrative" />
 
-      <PremiumFormField Label="Year">
-        <InputNumber @bind-Value="YearInput" />
-      </PremiumFormField>
+  <RecommendationCard
+    Title="Next best move"
+    Description="@topRecommendation"
+    ImpactText="@impactText"
+    CtaLabel="Apply this plan"
+    CtaHref="/transactions" />
 
-      <PremiumFormField Label="Month">
-        <InputNumber @bind-Value="MonthInput" />
-      </PremiumFormField>
-
-      <PremiumFormField Label="Action type">
-        <InputSelect @bind-Value="SelectedTypeInput">
-          @foreach (var type in actionTypes)
-          {
-            <option value="@type">@ToDisplay(type)</option>
-          }
-        </InputSelect>
-      </PremiumFormField>
-
-      <PremiumFormField Label="Category">
-        <InputText @bind-Value="CategoryInput" />
-      </PremiumFormField>
-
-      <PremiumFormField Label="Value">
-        <InputNumber @bind-Value="ActionValueInput" />
-      </PremiumFormField>
-    </div>
-
-    <div class="action-row">
-      <button class="btn-primary" @onclick="RunSimulation" disabled="@isSimulating">@(isSimulating ? "Simulating..." : "Run simulation")</button>
-      <TrendBadge Label="@lastUpdatedLabel" Variant="neutral" />
+  <section class="panel">
+    <div class="section-header-copy">
+      <h3 class="section-title">Before vs after</h3>
+      <p class="muted">One chart focused on outcome, not noise.</p>
     </div>
 
     @if (simulation is null)
     {
-      <InlineCard AdditionalClass="card-rise">
-        <div class="skeleton-stack">
-          <span class="skeleton-line full"></span>
-          <span class="skeleton-line medium"></span>
-          <span class="skeleton-line short"></span>
-        </div>
-      </InlineCard>
+      <div class="skeleton-stack" aria-hidden="true">
+        <span class="skeleton-line full"></span>
+        <span class="skeleton-line medium"></span>
+      </div>
     }
     else
     {
-      <MetricHero
-        Eyebrow="Scenario impact"
-        Title="What-if impact score"
-        Subtitle="Higher score means stronger improvement in net cash flow and savings rate."
-        MicroExplanation="@impactSummary"
-        Score="impactScore"
-        ValueLabel="@($"Net delta {simulation.Delta.NetDelta:0} SEK")"
-        PrimaryActionLabel="Apply this as monthly target"
-        PrimaryActionHref="/transactions"
-        SparklinePoints="simulationSparkline" />
-
-      <div class="whatif-grid">
-        <BaseCard AdditionalClass="card-rise">
-          <p class="metric-eyebrow">Baseline</p>
-          <p>Income: <strong>@simulation.Baseline.Income.ToString("0") SEK</strong></p>
-          <p>Expenses: <strong>@simulation.Baseline.Expenses.ToString("0") SEK</strong></p>
-          <p>Net: <strong>@simulation.Baseline.Net.ToString("0") SEK</strong></p>
-        </BaseCard>
-
-        <BaseCard AdditionalClass="card-rise">
-          <p class="metric-eyebrow">Simulated</p>
-          <p>Income: <strong>@simulation.Simulated.Income.ToString("0") SEK</strong></p>
-          <p>Expenses: <strong>@simulation.Simulated.Expenses.ToString("0") SEK</strong></p>
-          <p>Net: <strong>@simulation.Simulated.Net.ToString("0") SEK</strong></p>
-        </BaseCard>
-
-        <BaseCard AdditionalClass="card-rise">
-          <p class="metric-eyebrow">Delta</p>
-          <p>Income: <strong>@simulation.Delta.IncomeDelta.ToString("0") SEK</strong></p>
-          <p>Expenses: <strong>@simulation.Delta.ExpenseDelta.ToString("0") SEK</strong></p>
-          <p>Net: <strong>@simulation.Delta.NetDelta.ToString("0") SEK</strong></p>
-        </BaseCard>
-      </div>
-
-      <ListCard AdditionalClass="card-rise">
-        <h4>KPI comparison</h4>
-        @foreach (var row in GetComparisonRows(simulation))
+      <div class="before-after-chart card-rise">
+        @foreach (var row in outcomeRows)
         {
-          decimal max = Math.Max(Math.Abs(row.Baseline), Math.Abs(row.Simulated));
-          <div class="compare-row">
-            <div class="compare-label">
-              <span>@row.Label</span>
-              <strong>@FormatMetric(row.Simulated, row.IsPercent)</strong>
+          decimal max = Math.Max(Math.Abs(row.Before), Math.Abs(row.After));
+          <div class="before-after-item">
+            <div class="before-after-head">
+              <span class="before-after-label">@row.Label</span>
+              <strong>@FormatMetric(row.After, row.IsPercent)</strong>
             </div>
-
-            <div class="compare-bars">
-              <div class="compare-bar baseline">
-                <div style="width:@BarWidth(row.Baseline, max)"></div>
-              </div>
-              <div class="compare-bar simulated">
-                <div style="width:@BarWidth(row.Simulated, max)"></div>
-              </div>
+            <div class="compare-bar baseline">
+              <div style="width:@BarWidth(row.Before, max)"></div>
             </div>
-
-            <small class="muted">Baseline @FormatMetric(row.Baseline, row.IsPercent) → Simulated @FormatMetric(row.Simulated, row.IsPercent)</small>
+            <div class="compare-bar simulated">
+              <div style="width:@BarWidth(row.After, max)"></div>
+            </div>
+            <small class="muted">Before @FormatMetric(row.Before, row.IsPercent) -> After @FormatMetric(row.After, row.IsPercent)</small>
           </div>
         }
-      </ListCard>
-
-      <RecommendationCard
-        Title="Next best move"
-        Description="@(simulation.Recommendations.FirstOrDefault() ?? simulation.Explanation)"
-        ImpactText="@($"Expected improvement: {simulation.Delta.NetDelta:0} SEK/month")"
-        CtaLabel="Apply this strategy"
-        CtaHref="/transactions" />
-
-      <AIExplanationBlock Title="Why this scenario works" Body="@simulation.Explanation" />
+      </div>
     }
   </section>
 
-  <section class="panel">
-    <div class="section-header">
-      <div class="section-header-copy">
-        <h3 class="section-title">Additional opportunities</h3>
-        <p class="muted">Compact recommendations to complement your main plan.</p>
-      </div>
+  <details class="decision-details" id="scenario-details">
+    <summary>Scenario setup and detailed metrics</summary>
+    <div class="decision-details-body">
+      <section class="panel">
+        <div class="section-header-copy">
+          <h3 class="section-title">Scenario controls</h3>
+          <p class="muted">Change one variable, rerun, compare.</p>
+        </div>
 
-      <div class="badge-row">
-        @foreach (var badge in leakBadges)
+        @if (templates.Any())
         {
-          <TrendBadge Label="@badge.Label" Variant="@badge.Variant" />
+          <div class="preset-row">
+            @foreach (var template in templates)
+            {
+              <button type="button" class="preset-chip @(template.Name == selectedTemplateName ? "selected" : string.Empty)" @onclick="() => OnTemplateSelected(template)">
+                <span>@template.Name</span>
+                <small>@template.SuggestedCategory • @template.SuggestedValue.ToString("0.#")</small>
+              </button>
+            }
+          </div>
         }
-      </div>
+
+        <div class="form-grid">
+          <PremiumFormField Label="Scenario name">
+            <InputText @bind-Value="ScenarioNameInput" />
+          </PremiumFormField>
+
+          <PremiumFormField Label="Year">
+            <InputNumber @bind-Value="YearInput" />
+          </PremiumFormField>
+
+          <PremiumFormField Label="Month">
+            <InputNumber @bind-Value="MonthInput" />
+          </PremiumFormField>
+
+          <PremiumFormField Label="Action type">
+            <InputSelect @bind-Value="SelectedTypeInput">
+              @foreach (var type in actionTypes)
+              {
+                <option value="@type">@ToDisplay(type)</option>
+              }
+            </InputSelect>
+          </PremiumFormField>
+
+          <PremiumFormField Label="Category">
+            <InputText @bind-Value="CategoryInput" />
+          </PremiumFormField>
+
+          <PremiumFormField Label="Value">
+            <InputNumber @bind-Value="ActionValueInput" />
+          </PremiumFormField>
+        </div>
+
+        <div class="action-row">
+          <button class="btn-primary" @onclick="RunSimulation" disabled="@isSimulating">@(isSimulating ? "Updating..." : "Run simulation")</button>
+          <TrendBadge Label="@lastUpdatedLabel" Variant="neutral" />
+        </div>
+      </section>
+
+      @if (simulation is not null)
+      {
+        <section class="panel">
+          <div class="section-header-copy">
+            <h3 class="section-title">Detailed numbers</h3>
+            <p class="muted">Expanded metrics for deeper review.</p>
+          </div>
+
+          <div class="kpi-grid">
+            <BaseCard>
+              <p class="metric-eyebrow">Before</p>
+              <p>Income <strong>@simulation.Baseline.Income.ToString("0") SEK</strong></p>
+              <p>Expenses <strong>@simulation.Baseline.Expenses.ToString("0") SEK</strong></p>
+              <p>Net <strong>@simulation.Baseline.Net.ToString("0") SEK</strong></p>
+            </BaseCard>
+            <BaseCard>
+              <p class="metric-eyebrow">After</p>
+              <p>Income <strong>@simulation.Simulated.Income.ToString("0") SEK</strong></p>
+              <p>Expenses <strong>@simulation.Simulated.Expenses.ToString("0") SEK</strong></p>
+              <p>Net <strong>@simulation.Simulated.Net.ToString("0") SEK</strong></p>
+            </BaseCard>
+            <BaseCard>
+              <p class="metric-eyebrow">Delta</p>
+              <p>Income <strong>@simulation.Delta.IncomeDelta.ToString("0") SEK</strong></p>
+              <p>Expenses <strong>@simulation.Delta.ExpenseDelta.ToString("0") SEK</strong></p>
+              <p>Net <strong>@simulation.Delta.NetDelta.ToString("0") SEK</strong></p>
+            </BaseCard>
+          </div>
+        </section>
+      }
+
+      @if (supportingInsights.Any())
+      {
+        <section class="panel">
+          <div class="section-header-copy">
+            <h3 class="section-title">Supporting insights</h3>
+            <p class="muted">Useful context if you want to go deeper.</p>
+          </div>
+
+          <div class="insight-grid">
+            @foreach (var card in supportingInsights)
+            {
+              <InsightCard Item="card" ActionLabel="Review" ActionHref="/transactions" />
+            }
+          </div>
+        </section>
+      }
     </div>
-
-    @if (!compactInsights.Any())
-    {
-      <p class="muted">No additional insights available.</p>
-    }
-    else
-    {
-      <div class="insight-grid">
-        @foreach (var card in compactInsights)
-        {
-          <InsightCard Item="card" ActionLabel="Open" ActionHref="/transactions" />
-        }
-      </div>
-    }
-  </section>
+  </details>
 </div>
 
 @code {
   private readonly WhatIfActionType[] actionTypes = Enum.GetValues<WhatIfActionType>();
 
   private IReadOnlyList<InsightCardDto> allInsights = [];
-  private IReadOnlyList<InsightCardDto> compactInsights = [];
+  private IReadOnlyList<InsightCardDto> supportingInsights = [];
   private IReadOnlyList<WhatIfScenarioTemplateDto> templates = [];
-  private IReadOnlyList<BadgeItem> leakBadges = [];
 
-  private InsightCardDto? heroInsight;
   private WhatIfSimulationResultDto? simulation;
-
-  private string topNarrative = string.Empty;
-  private bool isLoadingNarrative = true;
+  private InsightCardDto? primaryInsight;
 
   private string scenarioName = "30-day plan";
   private int year = DateTime.UtcNow.Year;
@@ -239,12 +209,19 @@
   private decimal actionValue = 15;
   private string selectedTemplateName = string.Empty;
 
-  private int impactScore;
-  private string impactSummary = "No simulation yet.";
-  private string lastUpdatedLabel = "Not simulated";
-  private IReadOnlyList<decimal> simulationSparkline = [20m, 22m, 26m, 24m, 31m, 36m];
-
   private bool isSimulating;
+  private bool isLoadingNarrative = true;
+  private string lastUpdatedLabel = "Not simulated";
+
+  private string heroOutcomeValue = "Calculating...";
+  private string heroOutcomeSubtitle = "Run your scenario to see your potential impact.";
+  private string humanExplanation = "Generating your monthly insights...";
+  private string topRecommendation = "Run one simulation and apply the best outcome.";
+  private string impactText = "No impact estimate yet.";
+
+  private IReadOnlyList<string> outcomeChips = [];
+  private IReadOnlyList<OutcomeRow> outcomeRows = [];
+
   private CancellationTokenSource? debounceCts;
 
   private string ScenarioNameInput
@@ -352,9 +329,16 @@
       MaxSuggestions = 5
     });
 
-    heroInsight = allInsights.FirstOrDefault();
-    compactInsights = allInsights.Skip(1).Take(4).ToList();
-    leakBadges = BuildLeakBadges(allInsights);
+    primaryInsight = allInsights.FirstOrDefault();
+    supportingInsights = allInsights.Skip(1).Take(3).ToList();
+
+    await BuildNarrativeAsync();
+    await RunSimulation();
+  }
+
+  private async Task BuildNarrativeAsync()
+  {
+    isLoadingNarrative = true;
 
     IReadOnlyList<InsightCardDto> monthlySummary = await InsightsApi.GetMonthlySummaryAsync(new MonthlySummaryRequest
     {
@@ -362,13 +346,16 @@
       Month = DateTime.UtcNow.Month
     });
 
-    topNarrative = monthlySummary.FirstOrDefault()?.Description
-      ?? heroInsight?.Description
-      ?? "AI narrative is not available for this cycle yet.";
+    string narrative = monthlySummary.FirstOrDefault()?.Description
+      ?? primaryInsight?.Description
+      ?? "No narrative available yet.";
+
+    humanExplanation = RewriteToHumanTone(narrative);
+    topRecommendation = primaryInsight?.SuggestedAction
+      ?? monthlySummary.FirstOrDefault()?.SuggestedAction
+      ?? "Apply one realistic cut in your highest growth category.";
 
     isLoadingNarrative = false;
-
-    await RunSimulation();
   }
 
   private async Task RunSimulation()
@@ -401,30 +388,62 @@
 
       if (simulation is null)
       {
-        impactScore = 0;
-        impactSummary = "Simulation failed.";
+        heroOutcomeValue = "No simulation result";
+        heroOutcomeSubtitle = "Try adjusting the scenario and run again.";
+        impactText = "No impact estimate available.";
+        outcomeRows = [];
+        outcomeChips = [];
         lastUpdatedLabel = "Simulation failed";
         return;
       }
 
-      impactScore = BuildImpactScore(simulation.Delta.NetDelta, simulation.Delta.SavingsRateDeltaPercent);
-      impactSummary = $"Net delta {simulation.Delta.NetDelta:0} SEK • Savings delta {simulation.Delta.SavingsRateDeltaPercent:0.0}%";
+      BuildHeroStory(simulation);
+      BuildOutcomeRows(simulation);
       lastUpdatedLabel = $"Updated {DateTime.Now:HH:mm:ss}";
-
-      simulationSparkline =
-      [
-        simulation.Baseline.Net,
-        simulation.Simulated.Net,
-        simulation.Baseline.SavingsRatePercent,
-        simulation.Simulated.SavingsRatePercent,
-        simulation.Delta.NetDelta,
-        simulation.Delta.SavingsRateDeltaPercent
-      ];
     }
     finally
     {
       isSimulating = false;
     }
+  }
+
+  private void BuildHeroStory(WhatIfSimulationResultDto result)
+  {
+    decimal delta = result.Delta.NetDelta;
+
+    heroOutcomeValue = delta >= 0
+      ? $"+{delta:0} SEK / month potential"
+      : $"{delta:0} SEK / month impact";
+
+    heroOutcomeSubtitle = delta >= 0
+      ? $"You could save about {delta:0} SEK each month if you apply this scenario."
+      : $"This scenario may reduce your net by {Math.Abs(delta):0} SEK each month.";
+
+    impactText = delta >= 0
+      ? $"Expected gain: {delta:0} SEK/month"
+      : $"Expected loss: {Math.Abs(delta):0} SEK/month";
+
+    outcomeChips =
+    [
+      $"Savings rate change {result.Delta.SavingsRateDeltaPercent:0.0}%",
+      $"Category focus: {categoryName}",
+      $"Action: {ToDisplay(selectedType)}"
+    ];
+
+    string simulatedNarrative = delta >= 0
+      ? $"You improve your net by {delta:0} SEK."
+      : $"You reduce your net by {Math.Abs(delta):0} SEK.";
+
+    humanExplanation = $"{simulatedNarrative} {RewriteToHumanTone(topRecommendation)}";
+  }
+
+  private void BuildOutcomeRows(WhatIfSimulationResultDto result)
+  {
+    outcomeRows =
+    [
+      new("Net cash flow", result.Baseline.Net, result.Simulated.Net),
+      new("Savings rate", result.Baseline.SavingsRatePercent, result.Simulated.SavingsRatePercent, true)
+    ];
   }
 
   private void OnTemplateSelected(WhatIfScenarioTemplateDto template)
@@ -447,7 +466,7 @@
     }
     catch (TaskCanceledException)
     {
-      // Ignore rapid input changes.
+      // ignore fast input churn
     }
   }
 
@@ -460,6 +479,20 @@
     scenarioName = $"{template.Name} scenario";
   }
 
+  private static string RewriteToHumanTone(string input)
+  {
+    if (string.IsNullOrWhiteSpace(input))
+    {
+      return "You can improve your month by making one small adjustment in your highest-growth category.";
+    }
+
+    return input
+      .Replace("Scenario shifts", "You can change")
+      .Replace("net cash flow", "your monthly net")
+      .Replace("If current behavior continues", "If you keep this pace")
+      .Trim();
+  }
+
   private static string ToDisplay(WhatIfActionType type)
     => type switch
     {
@@ -468,18 +501,9 @@
       WhatIfActionType.AddRecurringIncome => "Add recurring income",
       WhatIfActionType.AddRecurringExpense => "Add recurring expense",
       WhatIfActionType.AddOneOffTransaction => "Add one-off transaction",
-      WhatIfActionType.RemoveDetectedSubscriptions => "Remove detected subscriptions",
+      WhatIfActionType.RemoveDetectedSubscriptions => "Remove subscriptions",
       _ => type.ToString()
     };
-
-  private static int BuildImpactScore(decimal netDelta, decimal savingsRateDelta)
-  {
-    decimal score = 50m;
-    score += Math.Clamp(netDelta / 100m, -25m, 35m);
-    score += Math.Clamp(savingsRateDelta * 2m, -20m, 25m);
-
-    return (int)Math.Clamp(Math.Round(score), 0, 100);
-  }
 
   private static string BarWidth(decimal value, decimal max)
   {
@@ -490,40 +514,11 @@
   private static string FormatMetric(decimal value, bool isPercent)
     => isPercent ? $"{value:0.0}%" : $"{value:0} SEK";
 
-  private static IReadOnlyList<ComparisonRow> GetComparisonRows(WhatIfSimulationResultDto result)
-    =>
-    [
-      new("Income", result.Baseline.Income, result.Simulated.Income),
-      new("Expenses", result.Baseline.Expenses, result.Simulated.Expenses),
-      new("Net", result.Baseline.Net, result.Simulated.Net),
-      new("Savings rate", result.Baseline.SavingsRatePercent, result.Simulated.SavingsRatePercent, true)
-    ];
-
-  private static IReadOnlyList<BadgeItem> BuildLeakBadges(IReadOnlyList<InsightCardDto> leakCards)
-  {
-    if (leakCards.Count == 0)
-    {
-      return [new BadgeItem("No leaks detected", "up")];
-    }
-
-    decimal totalSavingsPotential = leakCards.Sum(x => x.EstimatedMonthlySavings);
-    decimal avgConfidence = leakCards.Average(x => x.Confidence);
-
-    return
-    [
-      new BadgeItem($"{leakCards.Count} insights", "neutral"),
-      new BadgeItem($"{totalSavingsPotential:0} SEK potential", "up"),
-      new BadgeItem($"{avgConfidence * 100m:0}% confidence", avgConfidence >= 0.7m ? "up" : "neutral")
-    ];
-  }
-
   public void Dispose()
   {
     debounceCts?.Cancel();
     debounceCts?.Dispose();
   }
 
-  private sealed record ComparisonRow(string Label, decimal Baseline, decimal Simulated, bool IsPercent = false);
-
-  private sealed record BadgeItem(string Label, string Variant);
+  private sealed record OutcomeRow(string Label, decimal Before, decimal After, bool IsPercent = false);
 }

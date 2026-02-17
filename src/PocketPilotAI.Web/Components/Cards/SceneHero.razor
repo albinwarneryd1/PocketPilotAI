@@ -1,0 +1,185 @@
+@using System.Globalization
+@implements IDisposable
+
+<HeroCard AdditionalClass="scene-hero card-rise">
+  <div class="scene-copy">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+      <p class="scene-label">@Label</p>
+    }
+
+    <h2 class="scene-value">@DisplayValue</h2>
+
+    @if (!string.IsNullOrWhiteSpace(Subtitle))
+    {
+      <p class="scene-subtitle">@Subtitle</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(ActionHint))
+    {
+      <p class="scene-hint">@ActionHint</p>
+    }
+
+    <div class="scene-actions">
+      @if (!string.IsNullOrWhiteSpace(PrimaryActionLabel) && !string.IsNullOrWhiteSpace(PrimaryActionHref))
+      {
+        <a class="btn-primary" href="@PrimaryActionHref">@PrimaryActionLabel</a>
+      }
+
+      @if (!string.IsNullOrWhiteSpace(SecondaryActionLabel) && !string.IsNullOrWhiteSpace(SecondaryActionHref))
+      {
+        <a class="btn-secondary" href="@SecondaryActionHref">@SecondaryActionLabel</a>
+      }
+    </div>
+  </div>
+
+  <div class="scene-visual" aria-hidden="true">
+    @if (GaugeValue.HasValue)
+    {
+      <div class="scene-gauge" style="@GaugeStyle">
+        <div>
+          <strong>@displayGauge</strong>
+          <small>/100</small>
+        </div>
+      </div>
+    }
+
+    @if (SparklinePoints.Any())
+    {
+      <svg class="scene-line-chart" viewBox="0 0 220 92" role="img" aria-label="Trend">
+        <polyline points="@SparklineCoordinates" />
+      </svg>
+    }
+  </div>
+</HeroCard>
+
+@code {
+  [Parameter] public string Label { get; set; } = string.Empty;
+
+  [Parameter] public decimal? TargetNumber { get; set; }
+
+  [Parameter] public string OutcomeText { get; set; } = string.Empty;
+
+  [Parameter] public string NumberPrefix { get; set; } = string.Empty;
+
+  [Parameter] public string NumberSuffix { get; set; } = string.Empty;
+
+  [Parameter] public int NumberDecimals { get; set; }
+
+  [Parameter] public bool IncludePlusForPositive { get; set; }
+
+  [Parameter] public string Subtitle { get; set; } = string.Empty;
+
+  [Parameter] public string ActionHint { get; set; } = string.Empty;
+
+  [Parameter] public string PrimaryActionLabel { get; set; } = string.Empty;
+
+  [Parameter] public string PrimaryActionHref { get; set; } = string.Empty;
+
+  [Parameter] public string SecondaryActionLabel { get; set; } = string.Empty;
+
+  [Parameter] public string SecondaryActionHref { get; set; } = string.Empty;
+
+  [Parameter] public int? GaugeValue { get; set; }
+
+  [Parameter] public IReadOnlyList<decimal> SparklinePoints { get; set; } = [];
+
+  private decimal displayNumber;
+  private int displayGauge;
+  private CancellationTokenSource? animationCts;
+
+  private string DisplayValue
+  {
+    get
+    {
+      if (TargetNumber is null)
+      {
+        return OutcomeText;
+      }
+
+      string format = NumberDecimals switch
+      {
+        <= 0 => "0",
+        _ => $"0.{new string('0', NumberDecimals)}"
+      };
+
+      string sign = IncludePlusForPositive && displayNumber > 0 ? "+" : string.Empty;
+      return $"{NumberPrefix}{sign}{displayNumber.ToString(format, CultureInfo.InvariantCulture)}{NumberSuffix}";
+    }
+  }
+
+  private string GaugeStyle => $"--score:{Math.Clamp(displayGauge, 0, 100)}%;";
+
+  private string SparklineCoordinates
+  {
+    get
+    {
+      if (!SparklinePoints.Any())
+      {
+        return string.Empty;
+      }
+
+      decimal min = SparklinePoints.Min();
+      decimal max = SparklinePoints.Max();
+      decimal range = max - min;
+
+      List<string> points = [];
+      int count = SparklinePoints.Count;
+      const decimal width = 220m;
+      const decimal height = 92m;
+      const decimal pad = 10m;
+
+      for (int i = 0; i < count; i++)
+      {
+        decimal x = count == 1
+          ? width / 2m
+          : pad + ((width - (pad * 2m)) * i / (count - 1m));
+
+        decimal normalized = range <= 0m ? 0.5m : (SparklinePoints[i] - min) / range;
+        decimal y = (height - pad) - normalized * (height - (pad * 2m));
+
+        points.Add($"{x:0.##},{y:0.##}");
+      }
+
+      return string.Join(" ", points);
+    }
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    animationCts?.Cancel();
+    animationCts?.Dispose();
+    animationCts = new CancellationTokenSource();
+
+    CancellationToken token = animationCts.Token;
+
+    decimal target = TargetNumber ?? displayNumber;
+    int gaugeTarget = Math.Clamp(GaugeValue ?? displayGauge, 0, 100);
+
+    decimal start = displayNumber;
+    int gaugeStart = displayGauge;
+
+    const int steps = 22;
+
+    for (int i = 1; i <= steps; i++)
+    {
+      token.ThrowIfCancellationRequested();
+      decimal t = i / (decimal)steps;
+
+      displayNumber = start + ((target - start) * t);
+      displayGauge = (int)Math.Round(gaugeStart + ((gaugeTarget - gaugeStart) * t));
+
+      await InvokeAsync(StateHasChanged);
+      await Task.Delay(16, token);
+    }
+
+    displayNumber = target;
+    displayGauge = gaugeTarget;
+  }
+
+  public void Dispose()
+  {
+    animationCts?.Cancel();
+    animationCts?.Dispose();
+  }
+}

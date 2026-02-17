@@ -1,30 +1,36 @@
 @page "/transactions"
 
 <div class="page-stack">
-  <section class="list-card-head">
-    <div>
-      <p class="metric-eyebrow">Transaction feed</p>
-      <h2>Spending Patterns</h2>
-      <p class="muted">Fokusera på mönster du kan justera den här veckan.</p>
+  <section class="page-head">
+    <div class="page-head-copy">
+      <p class="page-kicker">Transactions</p>
+      <h2 class="page-title">Spending feed</h2>
+      <p class="muted">Detect patterns quickly and act before habits drift.</p>
     </div>
 
     <a class="btn-primary" href="/add-transaction">Add transaction</a>
   </section>
 
   <MetricHero
-    Eyebrow="Pattern quality"
-    Title="Transaction Pulse"
-    Subtitle="Högre score betyder tydligare kategorier och bättre kontroll över spend-frekvens."
+    Eyebrow="Transaction quality"
+    Title="Pattern pulse"
+    Subtitle="A higher score means cleaner categories and steadier spending behavior."
+    MicroExplanation="@pulseLabel"
     Score="pulseScore"
-    ValueLabel="@pulseLabel"
+    ValueLabel="@($"Average transaction: {averageAmount:0} SEK")"
     PrimaryActionLabel="Run what-if"
-    PrimaryActionHref="/insights" />
+    PrimaryActionHref="/insights"
+    SparklinePoints="pulseSparkline" />
 
-  <AIExplanationBlock Title="Pattern highlight" Body="@patternNarrative" />
+  <AIExplanationBlock Title="Pattern detection" Body="@patternNarrative" />
 
   <section class="panel">
-    <div class="list-card-head">
-      <h3>Recent transactions</h3>
+    <div class="section-header">
+      <div class="section-header-copy">
+        <h3 class="section-title">Recent activity</h3>
+        <p class="muted">Filtered view optimized for daily review.</p>
+      </div>
+
       <div class="badge-row">
         @foreach (var badge in badges)
         {
@@ -33,53 +39,94 @@
       </div>
     </div>
 
-    @if (!items.Any())
+    <div class="form-grid single" style="gap:12px;">
+      <div>
+        <p class="metric-eyebrow">Month</p>
+        <div class="pill-filter-row">
+          @foreach (var month in monthFilters)
+          {
+            <button type="button" class="pill-filter @(selectedMonth == month.Key ? "active" : string.Empty)" @onclick="() => SetMonthFilter(month.Key)">@month.Label</button>
+          }
+        </div>
+      </div>
+
+      <div>
+        <p class="metric-eyebrow">Category</p>
+        <div class="pill-filter-row">
+          @foreach (var category in categoryFilters)
+          {
+            <button type="button" class="pill-filter @(selectedCategory == category ? "active" : string.Empty)" @onclick="() => SetCategoryFilter(category)">@category</button>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (!filteredItems.Any())
     {
-      <p class="muted">No transactions yet.</p>
+      <InlineCard AdditionalClass="card-rise">
+        <p class="muted">No transactions match this filter set.</p>
+      </InlineCard>
     }
     else
     {
-      <div class="card-grid">
-        @foreach (var item in items)
+      <div class="transactions-list">
+        @foreach (var item in filteredItems)
         {
-          <article class="surface-card list-card card-rise">
-            <div class="list-card-head">
-              <h4>@(string.IsNullOrWhiteSpace(item.MerchantName) ? "Unknown merchant" : item.MerchantName)</h4>
-              <strong>@item.Amount.ToString("0.##") @item.Currency</strong>
+          <ListCard AdditionalClass="card-rise">
+            <div class="transaction-row">
+              <div>
+                <h4>@(string.IsNullOrWhiteSpace(item.MerchantName) ? "Unknown merchant" : item.MerchantName)</h4>
+                <p class="muted">@(string.IsNullOrWhiteSpace(item.CategoryName) ? "Uncategorized" : item.CategoryName)</p>
+                <div class="transaction-meta">
+                  <TrendBadge Label="@item.Type.ToString()" Variant="neutral" />
+                  <TrendBadge Label="@item.DateUtc.ToString("yyyy-MM-dd")" Variant="neutral" />
+                  @if (item.IsRecurring)
+                  {
+                    <TrendBadge Label="Recurring" Variant="up" />
+                  }
+                </div>
+              </div>
+
+              <div class="transaction-amount">
+                <strong>@item.Amount.ToString("0.##") @item.Currency</strong>
+                <span class="muted">Account @item.AccountId.ToString()[..8]</span>
+              </div>
             </div>
 
-            <p>@(string.IsNullOrWhiteSpace(item.CategoryName) ? "Uncategorized" : item.CategoryName)</p>
-
-            <div class="badge-row">
-              <TrendBadge Label="@item.Type.ToString()" Variant="neutral" />
-              <TrendBadge Label="@item.DateUtc.ToString("yyyy-MM-dd")" Variant="neutral" />
-              @if (item.IsRecurring)
-              {
-                <TrendBadge Label="Recurring" Variant="up" />
-              }
-            </div>
-
-            <details>
-              <summary>Advanced details</summary>
-              <p class="muted">Account: @item.AccountId</p>
-              <p class="muted">Notes: @(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</p>
-            </details>
-          </article>
+            @if (!string.IsNullOrWhiteSpace(item.Notes))
+            {
+              <details>
+                <summary>Details</summary>
+                <p class="muted">@item.Notes</p>
+              </details>
+            }
+          </ListCard>
         }
       </div>
     }
   </section>
 </div>
 
+<a class="btn-primary sticky-cta" href="/add-transaction">Add transaction</a>
+
 @code {
   [Inject] private TransactionsApi TransactionsApi { get; set; } = default!;
 
   private IReadOnlyList<TransactionDto> items = [];
+  private IReadOnlyList<TransactionDto> filteredItems = [];
+
+  private IReadOnlyList<BadgeItem> badges = [];
+  private IReadOnlyList<MonthFilterItem> monthFilters = [];
+  private IReadOnlyList<string> categoryFilters = [];
+  private IReadOnlyList<decimal> pulseSparkline = [];
+
+  private string selectedMonth = "all";
+  private string selectedCategory = "all";
 
   private int pulseScore;
+  private decimal averageAmount;
   private string pulseLabel = "Waiting for transaction data.";
   private string patternNarrative = "Loading transaction behavior summary...";
-  private IReadOnlyList<BadgeItem> badges = [];
 
   protected override async Task OnInitializedAsync()
   {
@@ -87,30 +134,123 @@
       .OrderByDescending(x => x.DateUtc)
       .ToList();
 
-    decimal total = items.Sum(x => x.Amount);
-    int uncategorized = items.Count(x => string.IsNullOrWhiteSpace(x.CategoryName));
-    int recurring = items.Count(x => x.IsRecurring);
-    decimal avg = items.Any() ? total / items.Count : 0;
+    monthFilters = BuildMonthFilters(items);
+    categoryFilters = BuildCategoryFilters(items);
 
-    pulseScore = BuildPulseScore(uncategorized, recurring, items.Count);
-    pulseLabel = $"Avg size {avg:0} SEK, recurring {recurring} transactions.";
+    ApplyFiltersAndInsights();
+  }
 
-    string topCategory = items
+  private void SetMonthFilter(string key)
+  {
+    selectedMonth = key;
+    ApplyFiltersAndInsights();
+  }
+
+  private void SetCategoryFilter(string category)
+  {
+    selectedCategory = category;
+    ApplyFiltersAndInsights();
+  }
+
+  private void ApplyFiltersAndInsights()
+  {
+    IEnumerable<TransactionDto> query = items;
+
+    if (selectedMonth != "all")
+    {
+      var (year, month) = ParseMonthFilter(selectedMonth);
+      query = query.Where(x => x.DateUtc.Year == year && x.DateUtc.Month == month);
+    }
+
+    if (selectedCategory != "all")
+    {
+      query = query.Where(x => string.Equals(x.CategoryName ?? "Uncategorized", selectedCategory, StringComparison.OrdinalIgnoreCase));
+    }
+
+    filteredItems = query.ToList();
+
+    decimal total = filteredItems.Sum(x => x.Amount);
+    int uncategorized = filteredItems.Count(x => string.IsNullOrWhiteSpace(x.CategoryName));
+    int recurring = filteredItems.Count(x => x.IsRecurring);
+    averageAmount = filteredItems.Any() ? total / filteredItems.Count : 0;
+
+    pulseScore = BuildPulseScore(uncategorized, recurring, filteredItems.Count);
+    pulseLabel = filteredItems.Any()
+      ? $"{filteredItems.Count} records in view. Recurring ratio {(filteredItems.Count == 0 ? 0 : (recurring * 100m / filteredItems.Count)):0}%"
+      : "No records in selected filter.";
+
+    string topCategory = filteredItems
       .Where(x => !string.IsNullOrWhiteSpace(x.CategoryName))
       .GroupBy(x => x.CategoryName)
       .OrderByDescending(g => g.Sum(x => x.Amount))
       .Select(g => g.Key)
       .FirstOrDefault() ?? "Uncategorized";
 
-    patternNarrative =
-      $"Your heaviest category is {topCategory}. You have {recurring} recurring transactions and {uncategorized} uncategorized rows. Prioritize classifying uncategorized entries to improve recommendation accuracy.";
+    patternNarrative = filteredItems.Any()
+      ? $"{topCategory} is your heaviest category in this view. You have {recurring} recurring transactions and {uncategorized} uncategorized rows. Tag uncategorized entries to improve recommendation precision."
+      : "Add transactions or clear filters to unlock AI pattern analysis.";
+
+    pulseSparkline = BuildPulseSparkline(filteredItems);
 
     badges =
     [
-      new BadgeItem($"{items.Count} entries", "neutral"),
+      new BadgeItem($"{filteredItems.Count} records", "neutral"),
       new BadgeItem($"{recurring} recurring", recurring > 0 ? "up" : "neutral"),
       new BadgeItem($"{uncategorized} uncategorized", uncategorized > 0 ? "down" : "up")
     ];
+  }
+
+  private static IReadOnlyList<MonthFilterItem> BuildMonthFilters(IReadOnlyList<TransactionDto> source)
+  {
+    List<MonthFilterItem> filters = [new("all", "All")];
+
+    filters.AddRange(source
+      .Select(x => new DateTime(x.DateUtc.Year, x.DateUtc.Month, 1))
+      .Distinct()
+      .OrderByDescending(x => x)
+      .Take(6)
+      .Select(x => new MonthFilterItem($"{x.Year:D4}-{x.Month:D2}", x.ToString("MMM yyyy"))));
+
+    return filters;
+  }
+
+  private static IReadOnlyList<string> BuildCategoryFilters(IReadOnlyList<TransactionDto> source)
+    => ["all", .. source
+      .Select(x => string.IsNullOrWhiteSpace(x.CategoryName) ? "Uncategorized" : x.CategoryName)
+      .Distinct(StringComparer.OrdinalIgnoreCase)
+      .OrderBy(x => x)
+      .Take(8)];
+
+  private static (int year, int month) ParseMonthFilter(string key)
+  {
+    string[] parts = key.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    return parts.Length == 2 && int.TryParse(parts[0], out int year) && int.TryParse(parts[1], out int month)
+      ? (year, month)
+      : (DateTime.UtcNow.Year, DateTime.UtcNow.Month);
+  }
+
+  private static IReadOnlyList<decimal> BuildPulseSparkline(IReadOnlyList<TransactionDto> source)
+  {
+    if (!source.Any())
+    {
+      return [8m, 10m, 7m, 9m, 6m, 8m];
+    }
+
+    DateTime anchor = new DateTime(source.Max(x => x.DateUtc).Year, source.Max(x => x.DateUtc).Month, 1);
+    List<decimal> values = [];
+
+    for (int i = 5; i >= 0; i--)
+    {
+      DateTime month = anchor.AddMonths(-i);
+      decimal spend = source
+        .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
+        .Where(x => x.DateUtc.Year == month.Year && x.DateUtc.Month == month.Month)
+        .Sum(x => x.Amount);
+
+      values.Add(spend <= 0 ? 6m : spend);
+    }
+
+    return values;
   }
 
   private static int BuildPulseScore(int uncategorized, int recurring, int total)
@@ -120,12 +260,14 @@
       return 0;
     }
 
-    decimal quality = 75m;
-    quality -= (uncategorized / (decimal)total) * 40m;
-    quality += recurring > 0 ? 10m : -5m;
+    decimal quality = 74m;
+    quality -= (uncategorized / (decimal)total) * 42m;
+    quality += recurring > 0 ? 8m : -4m;
 
     return (int)Math.Clamp(Math.Round(quality), 0, 100);
   }
 
   private sealed record BadgeItem(string Label, string Variant);
+
+  private sealed record MonthFilterItem(string Key, string Label);
 }

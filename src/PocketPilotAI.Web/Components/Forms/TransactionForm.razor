@@ -1,39 +1,47 @@
-<EditForm Model="model" OnValidSubmit="HandleSubmit">
+<EditForm Model="model" OnValidSubmit="HandleSubmit" class="form-grid single">
   <DataAnnotationsValidator />
 
   <div class="form-grid">
-    <label>
-      Account Id
-      <InputText @bind-Value="model.AccountId" />
-    </label>
+    <PremiumFormField Label="Step 1: Account ID" HelpText="Use an existing account GUID from your profile data.">
+      <InputText @bind-Value="model.AccountId" placeholder="8f29..." />
+    </PremiumFormField>
 
-    <label>
-      Merchant
-      <InputText @bind-Value="model.MerchantName" />
-    </label>
+    <PremiumFormField Label="Step 2: Merchant" HelpText="Use a clear merchant name for better AI categorization.">
+      <InputText @bind-Value="model.MerchantName" placeholder="ICA Maxi" />
+    </PremiumFormField>
 
-    <label>
-      Amount
+    <PremiumFormField Label="Amount (SEK)">
       <InputNumber @bind-Value="model.Amount" />
-    </label>
+    </PremiumFormField>
 
-    <label>
-      Currency
+    <PremiumFormField Label="Currency">
       <InputText @bind-Value="model.Currency" />
-    </label>
+    </PremiumFormField>
 
-    <label>
-      Date (UTC)
+    <PremiumFormField Label="Date">
       <InputDate @bind-Value="model.DateUtc" />
-    </label>
+    </PremiumFormField>
 
-    <label>
-      Notes
-      <InputText @bind-Value="model.Notes" />
-    </label>
+    <PremiumFormField Label="Type">
+      <InputSelect @bind-Value="model.Type">
+        <option value="@PocketPilotAI.Core.Domain.Enums.TransactionType.Expense">Expense</option>
+        <option value="@PocketPilotAI.Core.Domain.Enums.TransactionType.Income">Income</option>
+        <option value="@PocketPilotAI.Core.Domain.Enums.TransactionType.Transfer">Transfer</option>
+      </InputSelect>
+    </PremiumFormField>
+
+    <PremiumFormField Label="Notes">
+      <InputText @bind-Value="model.Notes" placeholder="Optional context" />
+    </PremiumFormField>
+
+    <PremiumFormField Label="Recurring transaction">
+      <InputCheckbox @bind-Value="model.IsRecurring" />
+    </PremiumFormField>
   </div>
 
-  <button class="btn-primary" type="submit">Save transaction</button>
+  <div class="action-row" style="justify-content:flex-end;">
+    <button class="btn-primary" type="submit">Save transaction</button>
+  </div>
 
   @if (!string.IsNullOrWhiteSpace(Error))
   {
@@ -52,7 +60,7 @@
   {
     if (!Guid.TryParse(model.AccountId, out Guid accountId))
     {
-      Error = "Account Id must be a valid GUID.";
+      Error = "Account ID must be a valid GUID.";
       return;
     }
 
@@ -65,7 +73,9 @@
       Amount = model.Amount,
       Currency = model.Currency,
       DateUtc = DateTime.SpecifyKind(model.DateUtc, DateTimeKind.Utc),
-      Notes = model.Notes
+      Notes = model.Notes,
+      Type = model.Type,
+      IsRecurring = model.IsRecurring
     });
   }
 
@@ -81,6 +91,10 @@
 
     public DateTime DateUtc { get; set; } = DateTime.UtcNow.Date;
 
+    public PocketPilotAI.Core.Domain.Enums.TransactionType Type { get; set; } = PocketPilotAI.Core.Domain.Enums.TransactionType.Expense;
+
     public string Notes { get; set; } = string.Empty;
+
+    public bool IsRecurring { get; set; }
   }
 }

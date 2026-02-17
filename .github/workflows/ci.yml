@@ -64,5 +64,25 @@ jobs:
       - name: Restore MAUI
         run: dotnet restore src/PocketPilotAI.App/PocketPilotAI.App.csproj
 
+      - name: Check Xcode version
+        id: xcode
+        shell: bash
+        run: |
+          XCODE_VERSION="$(xcodebuild -version | awk '/Xcode/{print $2}')"
+          echo "Detected Xcode version: ${XCODE_VERSION}"
+          echo "xcode_version=${XCODE_VERSION}" >> "$GITHUB_OUTPUT"
+
+          if [[ "${XCODE_VERSION}" == 26.2* ]]; then
+            echo "skip_maui_build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_maui_build=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build MAUI (MacCatalyst)
-        run: dotnet build src/PocketPilotAI.App/PocketPilotAI.App.csproj -c Release -f net10.0-maccatalyst --no-restore
+        if: steps.xcode.outputs.skip_maui_build == 'false'
+        run: dotnet build src/PocketPilotAI.App/PocketPilotAI.App.csproj -c Release -f net10.0-maccatalyst --no-restore -p:ValidateXcodeVersion=false
+
+      - name: Skip MAUI build (Xcode mismatch)
+        if: steps.xcode.outputs.skip_maui_build == 'true'
+        run: |
+          echo "::warning::Skipping MAUI build. Runner Xcode is '${{ steps.xcode.outputs.xcode_version }}' but .NET MacCatalyst workload requires Xcode 26.2."

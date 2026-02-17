@@ -3,29 +3,44 @@
 @inject UserSessionState Session
 
 <div class="page-stack">
-  <section>
-    <p class="metric-eyebrow">@periodLabel</p>
-    <h2>Hej @displayName</h2>
-    <p class="muted">En snabb översikt av din ekonomiska hälsa och vad du kan göra härnäst.</p>
+  <section class="page-head">
+    <div class="page-head-copy">
+      <p class="page-kicker">Overview</p>
+      <h2 class="page-title">Financial health for @displayName</h2>
+      <p class="muted">A calm monthly snapshot with one clear next move.</p>
+    </div>
+
+    <select class="month-selector" value="@selectedMonthKey" @onchange="OnMonthChanged" aria-label="Month selector">
+      @foreach (var option in monthOptions)
+      {
+        <option value="@option.Key">@option.Label</option>
+      }
+    </select>
   </section>
 
   <MetricHero
-    Eyebrow="Financial health"
-    Title="Health Score"
-    Subtitle="Bygger på kassaflöde, budgetdisciplin och återkommande kostnader."
+    Eyebrow="Financial health score"
+    Title="@selectedPeriodTitle"
+    Subtitle="Score combines net cash flow, budget discipline and recurring-cost pressure."
+    MicroExplanation="@healthSummary"
     Score="healthScore"
-    ValueLabel="@healthSummary"
-    PrimaryActionLabel="Open what-if simulator"
-    PrimaryActionHref="/insights" />
+    ValueLabel="@($"Income {income:0} SEK • Expenses {expenses:0} SEK")"
+    PrimaryActionLabel="Open what-if"
+    PrimaryActionHref="/insights"
+    SparklinePoints="sparklinePoints" />
 
   <AIExplanationBlock
-    Title="Monthly AI narrative"
+    Title="Monthly narrative"
     Body="@monthlyNarrative"
     IsLoading="@isLoadingNarrative" />
 
   <section class="panel">
-    <div class="list-card-head">
-      <h3>Leak opportunities</h3>
+    <div class="section-header">
+      <div class="section-header-copy">
+        <h3 class="section-title">Leak opportunities</h3>
+        <p class="muted">Actionable categories with measurable monthly impact.</p>
+      </div>
+
       <div class="badge-row">
         @foreach (var badge in patternBadges)
         {
@@ -34,20 +49,34 @@
       </div>
     </div>
 
-    <div class="scroll-row">
-      @foreach (var card in leakCards)
-      {
-        <InsightCard Item="card" />
-      }
-    </div>
+    @if (!leakCards.Any())
+    {
+      <InlineCard AdditionalClass="card-rise">
+        <p class="muted">No leak opportunities found for this month yet.</p>
+      </InlineCard>
+    }
+    else
+    {
+      <div class="scroll-row">
+        @foreach (var card in leakCards)
+        {
+          <InsightCard Item="card" ActionLabel="View" ActionHref="/insights" />
+        }
+      </div>
+    }
   </section>
 
   <section class="panel">
-    <h3>Spending pace (last months)</h3>
+    <div class="section-header">
+      <div class="section-header-copy">
+        <h3 class="section-title">Spending trend</h3>
+        <p class="muted">Last 6 months. Smooth pacing is usually better than sharp spikes.</p>
+      </div>
+    </div>
 
     @if (!trendItems.Any())
     {
-      <p class="muted">Not enough data for trend yet.</p>
+      <p class="muted">Not enough historical data for trend analysis.</p>
     }
     else
     {
@@ -58,7 +87,7 @@
           <div class="bar-row card-rise">
             <span>@item.Label</span>
             <div class="bar-track"><div class="bar-fill" style="width:@($"{width:0}%")"></div></div>
-            <strong>@item.Amount.ToString("0")</strong>
+            <strong>@item.Amount.ToString("0") SEK</strong>
           </div>
         }
       </div>
@@ -66,10 +95,15 @@
   </section>
 
   <RecommendationCard
-    Title="Next best move"
+    Title="Start your 30-day improvement plan"
     Description="@primaryRecommendation"
-    CtaLabel="Run 30-day scenario"
+    ImpactText="@($"Potential gain: {estimatedImpact:0} SEK/month")"
+    CtaLabel="Apply top recommendation"
     CtaHref="/insights" />
+
+  <div class="primary-footer-cta">
+    <a class="btn-primary" href="/insights">Start a plan</a>
+  </div>
 </div>
 
 @code {
@@ -78,57 +112,108 @@
   [Inject] private InsightsApi InsightsApi { get; set; } = default!;
 
   private string displayName = "there";
-  private string periodLabel = string.Empty;
+
+  private IReadOnlyList<TransactionDto> allTransactions = [];
+  private IReadOnlyList<InsightCardDto> leakCards = [];
+  private IReadOnlyList<TrendItem> trendItems = [];
+  private IReadOnlyList<decimal> sparklinePoints = [];
+  private IReadOnlyList<TrendBadgeItem> patternBadges = [];
+  private IReadOnlyList<MonthOption> monthOptions = [];
+
+  private string selectedMonthKey = string.Empty;
+  private string selectedPeriodTitle = string.Empty;
 
   private int healthScore;
   private string healthSummary = "Score pending";
-  private string monthlyNarrative = "Preparing AI summary...";
+  private string monthlyNarrative = string.Empty;
   private bool isLoadingNarrative = true;
 
   private decimal income;
   private decimal expenses;
   private decimal remainingBudget;
   private decimal recurringShare;
-
-  private IReadOnlyList<InsightCardDto> leakCards = [];
-  private IReadOnlyList<TrendItem> trendItems = [];
   private decimal trendMax;
+  private decimal estimatedImpact;
 
-  private IReadOnlyList<TrendBadgeItem> patternBadges = [];
-  private string primaryRecommendation = "Open simulator and cap one rising category for the next 30 days.";
+  private string primaryRecommendation = "Cap one rising category and simulate the next 30 days.";
 
   protected override async Task OnInitializedAsync()
   {
-    periodLabel = DateTime.UtcNow.ToString("MMMM yyyy");
     displayName = string.IsNullOrWhiteSpace(Session.DisplayName) ? "there" : Session.DisplayName;
 
-    IReadOnlyList<TransactionDto> transactions = await TransactionsApi.GetAsync();
-    IReadOnlyList<BudgetDto> budgets = await BudgetsApi.GetMonthAsync(DateTime.UtcNow.Year, DateTime.UtcNow.Month);
+    allTransactions = await TransactionsApi.GetAsync();
+    monthOptions = BuildMonthOptions(allTransactions);
+    selectedMonthKey = monthOptions.FirstOrDefault()?.Key ?? BuildKey(DateTime.UtcNow.Year, DateTime.UtcNow.Month);
 
-    income = transactions.Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Income).Sum(x => x.Amount);
-    expenses = transactions.Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense).Sum(x => x.Amount);
+    await RefreshOverviewAsync();
+  }
+
+  private async Task OnMonthChanged(ChangeEventArgs args)
+  {
+    string? key = args.Value?.ToString();
+    if (string.IsNullOrWhiteSpace(key) || key == selectedMonthKey)
+    {
+      return;
+    }
+
+    selectedMonthKey = key;
+    await RefreshOverviewAsync();
+  }
+
+  private async Task RefreshOverviewAsync()
+  {
+    (int year, int month) = ParseKey(selectedMonthKey);
+    DateTime periodStart = new(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+    DateTime periodEnd = periodStart.AddMonths(1).AddTicks(-1);
+
+    selectedPeriodTitle = periodStart.ToString("MMMM yyyy");
+
+    IReadOnlyList<TransactionDto> periodTransactions = allTransactions
+      .Where(x => x.DateUtc.Year == year && x.DateUtc.Month == month)
+      .ToList();
+
+    IReadOnlyList<BudgetDto> budgets = await BudgetsApi.GetMonthAsync(year, month);
+
+    income = periodTransactions
+      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Income)
+      .Sum(x => x.Amount);
+
+    expenses = periodTransactions
+      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
+      .Sum(x => x.Amount);
+
     remainingBudget = budgets.Sum(x => x.RemainingAmount);
 
-    decimal recurringExpense = transactions
+    decimal recurringExpense = periodTransactions
       .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense && x.IsRecurring)
       .Sum(x => x.Amount);
 
     recurringShare = expenses <= 0 ? 0 : recurringExpense / expenses;
 
     healthScore = BuildHealthScore(income, expenses, remainingBudget, recurringShare);
-    healthSummary = BuildHealthSummary(healthScore);
+    healthSummary = BuildHealthSummary(healthScore, remainingBudget, recurringShare);
+
+    trendItems = BuildTrend(allTransactions, periodStart);
+    trendMax = trendItems.Any() ? trendItems.Max(x => x.Amount) : 0;
+    sparklinePoints = trendItems.Select(x => x.Amount).ToList();
+    patternBadges = BuildPatternBadges(periodTransactions, recurringShare);
 
     leakCards = await InsightsApi.GetLeakInsightsAsync(new LeakFinderRequest
     {
-      FromUtc = DateTime.UtcNow.AddMonths(-1),
-      ToUtc = DateTime.UtcNow,
-      MaxSuggestions = 5
+      FromUtc = periodStart,
+      ToUtc = periodEnd,
+      MaxSuggestions = 4
     });
+
+    estimatedImpact = leakCards.Sum(x => x.EstimatedMonthlySavings);
+
+    isLoadingNarrative = true;
+    monthlyNarrative = string.Empty;
 
     IReadOnlyList<InsightCardDto> monthlySummary = await InsightsApi.GetMonthlySummaryAsync(new MonthlySummaryRequest
     {
-      Year = DateTime.UtcNow.Year,
-      Month = DateTime.UtcNow.Month
+      Year = year,
+      Month = month
     });
 
     if (monthlySummary.Count > 0)
@@ -136,43 +221,50 @@
       monthlyNarrative = monthlySummary[0].Description;
       primaryRecommendation = monthlySummary[0].SuggestedAction;
     }
+    else
+    {
+      monthlyNarrative = "No AI narrative available for this month yet.";
+      primaryRecommendation = "Run one what-if scenario and cap your fastest-growing category.";
+    }
 
     isLoadingNarrative = false;
-
-    trendItems = BuildTrend(transactions);
-    trendMax = trendItems.Any() ? trendItems.Max(x => x.Amount) : 0;
-    patternBadges = BuildPatternBadges(transactions, recurringShare);
   }
 
   private static int BuildHealthScore(decimal income, decimal expenses, decimal remainingBudget, decimal recurringShare)
   {
     decimal savingsRate = income <= 0 ? 0 : (income - expenses) / income;
 
-    decimal score = 55m;
+    decimal score = 56m;
     score += savingsRate * 30m;
-    score += remainingBudget > 0 ? 12m : -12m;
+    score += remainingBudget > 0 ? 10m : -10m;
     score += recurringShare < 0.35m ? 8m : -8m;
 
     return (int)Math.Clamp(Math.Round(score), 0, 100);
   }
 
-  private static string BuildHealthSummary(int score)
-    => score switch
+  private static string BuildHealthSummary(int score, decimal remainingBudget, decimal recurringShare)
+  {
+    string level = score switch
     {
-      >= 80 => "Strong trajectory. Keep automating your best habits.",
-      >= 60 => "Stable, with clear room for one meaningful improvement.",
-      >= 40 => "Risk zone. Tighten one category this week.",
-      _ => "Critical trend. Start with recurring cost cleanup immediately."
+      >= 80 => "Strong trajectory.",
+      >= 60 => "Stable momentum.",
+      >= 40 => "Some pressure detected.",
+      _ => "High financial pressure."
     };
 
-  private static IReadOnlyList<TrendItem> BuildTrend(IReadOnlyList<TransactionDto> transactions)
+    string budgetState = remainingBudget >= 0 ? "Budget is still in control." : "Budget drift is visible.";
+    string recurringState = recurringShare > 0.4m ? "Recurring costs are heavy." : "Recurring costs are manageable.";
+
+    return $"{level} {budgetState} {recurringState}";
+  }
+
+  private static IReadOnlyList<TrendItem> BuildTrend(IReadOnlyList<TransactionDto> transactions, DateTime anchorMonth)
   {
-    DateTime now = DateTime.UtcNow;
     List<TrendItem> result = [];
 
     for (int i = 5; i >= 0; i--)
     {
-      DateTime month = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-i);
+      DateTime month = new DateTime(anchorMonth.Year, anchorMonth.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-i);
       decimal spend = transactions
         .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
         .Where(x => x.DateUtc.Year == month.Year && x.DateUtc.Month == month.Month)
@@ -198,8 +290,8 @@
     decimal weekendShare = totalSpend <= 0 ? 0 : weekendSpend / totalSpend;
 
     TrendBadgeItem weekendBadge = new(
-      $"Weekend spend {(weekendShare * 100m):0}%",
-      weekendShare > 0.38m ? "up" : "neutral");
+      $"Weekend share {(weekendShare * 100m):0}%",
+      weekendShare > 0.38m ? "down" : "up");
 
     TrendBadgeItem recurringBadge = new(
       $"Recurring {(recurringShare * 100m):0}%",
@@ -207,13 +299,49 @@
 
     int uncategorizedCount = transactions.Count(x => string.IsNullOrWhiteSpace(x.CategoryName));
     TrendBadgeItem qualityBadge = new(
-      uncategorizedCount > 0 ? $"{uncategorizedCount} uncategorized" : "Categories clean",
+      uncategorizedCount > 0 ? $"{uncategorizedCount} uncategorized" : "Data quality good",
       uncategorizedCount > 0 ? "down" : "up");
 
     return [weekendBadge, recurringBadge, qualityBadge];
   }
 
+  private static IReadOnlyList<MonthOption> BuildMonthOptions(IReadOnlyList<TransactionDto> transactions)
+  {
+    HashSet<string> keys = new(StringComparer.Ordinal);
+
+    foreach (var tx in transactions)
+    {
+      keys.Add(BuildKey(tx.DateUtc.Year, tx.DateUtc.Month));
+    }
+
+    keys.Add(BuildKey(DateTime.UtcNow.Year, DateTime.UtcNow.Month));
+
+    return keys
+      .Select(ParseKey)
+      .OrderByDescending(x => x.year)
+      .ThenByDescending(x => x.month)
+      .Take(8)
+      .Select(x => new MonthOption(BuildKey(x.year, x.month), new DateTime(x.year, x.month, 1).ToString("MMMM yyyy")))
+      .ToList();
+  }
+
+  private static string BuildKey(int year, int month)
+    => $"{year:D4}-{month:D2}";
+
+  private static (int year, int month) ParseKey(string key)
+  {
+    string[] parts = key.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    if (parts.Length != 2 || !int.TryParse(parts[0], out int year) || !int.TryParse(parts[1], out int month))
+    {
+      return (DateTime.UtcNow.Year, DateTime.UtcNow.Month);
+    }
+
+    return (year, month);
+  }
+
   private sealed record TrendItem(string Label, decimal Amount);
 
   private sealed record TrendBadgeItem(string Label, string Variant);
+
+  private sealed record MonthOption(string Key, string Label);
 }

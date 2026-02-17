@@ -3,29 +3,55 @@
 @implements IDisposable
 
 <div class="page-stack">
-  <section>
-    <p class="metric-eyebrow">AI Coach</p>
-    <h2>Guided Simulation</h2>
-    <p class="muted">Få insikter och testa åtgärder i realtid innan du ändrar dina vanor.</p>
+  <section class="page-head">
+    <div class="page-head-copy">
+      <p class="page-kicker">AI coach</p>
+      <h2 class="page-title">Insights & what-if simulation</h2>
+      <p class="muted">Model decisions before you change behavior in real life.</p>
+    </div>
+
+    <a class="btn-primary" href="#whatif">Run scenario</a>
   </section>
 
-  <MetricHero
-    Eyebrow="Scenario impact"
-    Title="What-if impact score"
-    Subtitle="Högre score betyder starkare förbättring av netto och spargrad."
-    Score="impactScore"
-    ValueLabel="@impactSummary"
-    PrimaryActionLabel="Run simulation now"
-    PrimaryActionHref="/insights" />
+  @if (heroInsight is not null)
+  {
+    <HeroCard AdditionalClass="card-rise">
+      <div class="section-header">
+        <div class="section-header-copy">
+          <p class="metric-eyebrow">Top insight</p>
+          <h3>@heroInsight.Title</h3>
+          <p class="primary-copy">@heroInsight.Description</p>
+        </div>
 
-  <AIExplanationBlock
-    Title="Monthly AI narrative"
-    Body="@monthlyNarrative"
-    IsLoading="@isLoadingNarrative" />
+        <TrendBadge Label="@($"{heroInsight.Confidence * 100m:0}% confidence")" Variant="neutral" />
+      </div>
 
-  <section class="panel">
-    <div class="list-card-head">
-      <h3>Live what-if simulator</h3>
+      <div class="action-row">
+        <span class="save-pill">~@heroInsight.EstimatedMonthlySavings.ToString("0") SEK/month potential</span>
+        <a class="btn-secondary" href="/transactions">Review transactions</a>
+      </div>
+
+      <RecommendationCard
+        Title="Action plan"
+        Description="@heroInsight.SuggestedAction"
+        ImpactText="@($"Estimated monthly impact: {heroInsight.EstimatedMonthlySavings:0} SEK")"
+        CtaLabel="Open transaction feed"
+        CtaHref="/transactions" />
+    </HeroCard>
+
+    <AIExplanationBlock
+      Title="Why this recommendation is prioritized"
+      Body="@topNarrative"
+      IsLoading="@isLoadingNarrative" />
+  }
+
+  <section class="panel" id="whatif">
+    <div class="section-header">
+      <div class="section-header-copy">
+        <h3 class="section-title">Live what-if simulator</h3>
+        <p class="muted">Change one variable and see the KPI delta instantly.</p>
+      </div>
+
       <TrendBadge Label="Live updates" Variant="up" />
     </div>
 
@@ -34,82 +60,97 @@
       <div class="preset-row">
         @foreach (var template in templates)
         {
-          <button type="button" class="@TemplateClass(template)" @onclick="@(() => OnTemplateSelected(template))">
+          <button type="button" class="preset-chip @(template.Name == selectedTemplateName ? "selected" : string.Empty)" @onclick="() => OnTemplateSelected(template)">
             <span>@template.Name</span>
-            <small>@template.SuggestedCategory - @template.SuggestedValue.ToString("0.#")</small>
+            <small>@template.SuggestedCategory • @template.SuggestedValue.ToString("0.#")</small>
           </button>
         }
       </div>
     }
 
     <div class="form-grid">
-      <label>
-        Scenario name
+      <PremiumFormField Label="Scenario name">
         <InputText @bind-Value="ScenarioNameInput" />
-      </label>
+      </PremiumFormField>
 
-      <label>
-        Year
+      <PremiumFormField Label="Year">
         <InputNumber @bind-Value="YearInput" />
-      </label>
+      </PremiumFormField>
 
-      <label>
-        Month
+      <PremiumFormField Label="Month">
         <InputNumber @bind-Value="MonthInput" />
-      </label>
+      </PremiumFormField>
 
-      <label>
-        Action type
+      <PremiumFormField Label="Action type">
         <InputSelect @bind-Value="SelectedTypeInput">
-          @foreach (var template in templates)
+          @foreach (var type in actionTypes)
           {
-            <option value="@template.ActionType">@template.Name</option>
+            <option value="@type">@ToDisplay(type)</option>
           }
         </InputSelect>
-      </label>
+      </PremiumFormField>
 
-      <label>
-        Category
+      <PremiumFormField Label="Category">
         <InputText @bind-Value="CategoryInput" />
-      </label>
+      </PremiumFormField>
 
-      <label>
-        Value
+      <PremiumFormField Label="Value">
         <InputNumber @bind-Value="ActionValueInput" />
-      </label>
+      </PremiumFormField>
     </div>
 
     <div class="action-row">
-      <button class="btn-primary" @onclick="RunSimulation">Run simulation</button>
+      <button class="btn-primary" @onclick="RunSimulation" disabled="@isSimulating">@(isSimulating ? "Simulating..." : "Run simulation")</button>
       <TrendBadge Label="@lastUpdatedLabel" Variant="neutral" />
     </div>
 
-    @if (simulation is not null)
+    @if (simulation is null)
     {
+      <InlineCard AdditionalClass="card-rise">
+        <div class="skeleton-stack">
+          <span class="skeleton-line full"></span>
+          <span class="skeleton-line medium"></span>
+          <span class="skeleton-line short"></span>
+        </div>
+      </InlineCard>
+    }
+    else
+    {
+      <MetricHero
+        Eyebrow="Scenario impact"
+        Title="What-if impact score"
+        Subtitle="Higher score means stronger improvement in net cash flow and savings rate."
+        MicroExplanation="@impactSummary"
+        Score="impactScore"
+        ValueLabel="@($"Net delta {simulation.Delta.NetDelta:0} SEK")"
+        PrimaryActionLabel="Apply this as monthly target"
+        PrimaryActionHref="/transactions"
+        SparklinePoints="simulationSparkline" />
+
       <div class="whatif-grid">
-        <article class="surface-card card-rise">
-          <h4>Baseline</h4>
-          <p>Income: @simulation.Baseline.Income.ToString("0") SEK</p>
-          <p>Expenses: @simulation.Baseline.Expenses.ToString("0") SEK</p>
-          <p>Net: @simulation.Baseline.Net.ToString("0") SEK</p>
-        </article>
+        <BaseCard AdditionalClass="card-rise">
+          <p class="metric-eyebrow">Baseline</p>
+          <p>Income: <strong>@simulation.Baseline.Income.ToString("0") SEK</strong></p>
+          <p>Expenses: <strong>@simulation.Baseline.Expenses.ToString("0") SEK</strong></p>
+          <p>Net: <strong>@simulation.Baseline.Net.ToString("0") SEK</strong></p>
+        </BaseCard>
 
-        <article class="surface-card card-rise">
-          <h4>Simulated</h4>
-          <p>Income: @simulation.Simulated.Income.ToString("0") SEK</p>
-          <p>Expenses: @simulation.Simulated.Expenses.ToString("0") SEK</p>
-          <p>Net: @simulation.Simulated.Net.ToString("0") SEK</p>
-        </article>
+        <BaseCard AdditionalClass="card-rise">
+          <p class="metric-eyebrow">Simulated</p>
+          <p>Income: <strong>@simulation.Simulated.Income.ToString("0") SEK</strong></p>
+          <p>Expenses: <strong>@simulation.Simulated.Expenses.ToString("0") SEK</strong></p>
+          <p>Net: <strong>@simulation.Simulated.Net.ToString("0") SEK</strong></p>
+        </BaseCard>
 
-        <article class="surface-card card-rise">
-          <h4>Delta</h4>
-          <p>Income delta: @simulation.Delta.IncomeDelta.ToString("0") SEK</p>
-          <p>Expense delta: @simulation.Delta.ExpenseDelta.ToString("0") SEK</p>
-          <p>Net delta: @simulation.Delta.NetDelta.ToString("0") SEK</p>
-        </article>
+        <BaseCard AdditionalClass="card-rise">
+          <p class="metric-eyebrow">Delta</p>
+          <p>Income: <strong>@simulation.Delta.IncomeDelta.ToString("0") SEK</strong></p>
+          <p>Expenses: <strong>@simulation.Delta.ExpenseDelta.ToString("0") SEK</strong></p>
+          <p>Net: <strong>@simulation.Delta.NetDelta.ToString("0") SEK</strong></p>
+        </BaseCard>
       </div>
 
-      <article class="surface-card card-rise">
+      <ListCard AdditionalClass="card-rise">
         <h4>KPI comparison</h4>
         @foreach (var row in GetComparisonRows(simulation))
         {
@@ -129,15 +170,16 @@
               </div>
             </div>
 
-            <small class="muted">Baseline @FormatMetric(row.Baseline, row.IsPercent) -> Simulated @FormatMetric(row.Simulated, row.IsPercent)</small>
+            <small class="muted">Baseline @FormatMetric(row.Baseline, row.IsPercent) → Simulated @FormatMetric(row.Simulated, row.IsPercent)</small>
           </div>
         }
-      </article>
+      </ListCard>
 
       <RecommendationCard
-        Title="Top recommendation"
+        Title="Next best move"
         Description="@(simulation.Recommendations.FirstOrDefault() ?? simulation.Explanation)"
-        CtaLabel="Apply as monthly target"
+        ImpactText="@($"Expected improvement: {simulation.Delta.NetDelta:0} SEK/month")"
+        CtaLabel="Apply this strategy"
         CtaHref="/transactions" />
 
       <AIExplanationBlock Title="Why this scenario works" Body="@simulation.Explanation" />
@@ -145,8 +187,12 @@
   </section>
 
   <section class="panel">
-    <div class="list-card-head">
-      <h3>Leak insights</h3>
+    <div class="section-header">
+      <div class="section-header-copy">
+        <h3 class="section-title">Additional opportunities</h3>
+        <p class="muted">Compact recommendations to complement your main plan.</p>
+      </div>
+
       <div class="badge-row">
         @foreach (var badge in leakBadges)
         {
@@ -155,21 +201,35 @@
       </div>
     </div>
 
-    <div class="scroll-row">
-      @foreach (var card in cards)
-      {
-        <InsightCard Item="card" />
-      }
-    </div>
+    @if (!compactInsights.Any())
+    {
+      <p class="muted">No additional insights available.</p>
+    }
+    else
+    {
+      <div class="insight-grid">
+        @foreach (var card in compactInsights)
+        {
+          <InsightCard Item="card" ActionLabel="Open" ActionHref="/transactions" />
+        }
+      </div>
+    }
   </section>
 </div>
 
 @code {
-  private IReadOnlyList<InsightCardDto> cards = [];
+  private readonly WhatIfActionType[] actionTypes = Enum.GetValues<WhatIfActionType>();
+
+  private IReadOnlyList<InsightCardDto> allInsights = [];
+  private IReadOnlyList<InsightCardDto> compactInsights = [];
   private IReadOnlyList<WhatIfScenarioTemplateDto> templates = [];
+  private IReadOnlyList<BadgeItem> leakBadges = [];
+
+  private InsightCardDto? heroInsight;
   private WhatIfSimulationResultDto? simulation;
 
-  private IReadOnlyList<BadgeItem> leakBadges = [];
+  private string topNarrative = string.Empty;
+  private bool isLoadingNarrative = true;
 
   private string scenarioName = "30-day plan";
   private int year = DateTime.UtcNow.Year;
@@ -179,13 +239,12 @@
   private decimal actionValue = 15;
   private string selectedTemplateName = string.Empty;
 
-  private string monthlyNarrative = "Generating narrative...";
-  private bool isLoadingNarrative = true;
-
   private int impactScore;
   private string impactSummary = "No simulation yet.";
   private string lastUpdatedLabel = "Not simulated";
+  private IReadOnlyList<decimal> simulationSparkline = [20m, 22m, 26m, 24m, 31m, 36m];
 
+  private bool isSimulating;
   private CancellationTokenSource? debounceCts;
 
   private string ScenarioNameInput
@@ -286,14 +345,16 @@
       ApplyTemplate(templates[0]);
     }
 
-    cards = await InsightsApi.GetLeakInsightsAsync(new LeakFinderRequest
+    allInsights = await InsightsApi.GetLeakInsightsAsync(new LeakFinderRequest
     {
       FromUtc = DateTime.UtcNow.AddMonths(-1),
       ToUtc = DateTime.UtcNow,
       MaxSuggestions = 5
     });
 
-    leakBadges = BuildLeakBadges(cards);
+    heroInsight = allInsights.FirstOrDefault();
+    compactInsights = allInsights.Skip(1).Take(4).ToList();
+    leakBadges = BuildLeakBadges(allInsights);
 
     IReadOnlyList<InsightCardDto> monthlySummary = await InsightsApi.GetMonthlySummaryAsync(new MonthlySummaryRequest
     {
@@ -301,10 +362,9 @@
       Month = DateTime.UtcNow.Month
     });
 
-    if (monthlySummary.Count > 0)
-    {
-      monthlyNarrative = monthlySummary[0].Description;
-    }
+    topNarrative = monthlySummary.FirstOrDefault()?.Description
+      ?? heroInsight?.Description
+      ?? "AI narrative is not available for this cycle yet.";
 
     isLoadingNarrative = false;
 
@@ -313,37 +373,58 @@
 
   private async Task RunSimulation()
   {
-    simulation = await InsightsApi.SimulateAsync(new WhatIfSimulationRequest
+    isSimulating = true;
+
+    try
     {
-      ScenarioName = scenarioName,
-      Year = year,
-      Month = month,
-      Actions =
+      simulation = await InsightsApi.SimulateAsync(new WhatIfSimulationRequest
+      {
+        ScenarioName = scenarioName,
+        Year = year,
+        Month = month,
+        Actions =
+        [
+          new WhatIfActionDto
+          {
+            Type = selectedType,
+            Label = selectedType.ToString(),
+            CategoryName = categoryName,
+            Value = actionValue,
+            TransactionType = selectedType == WhatIfActionType.AddRecurringIncome
+              ? PocketPilotAI.Core.Domain.Enums.TransactionType.Income
+              : PocketPilotAI.Core.Domain.Enums.TransactionType.Expense,
+            IsRecurring = selectedType != WhatIfActionType.AddOneOffTransaction,
+            EffectiveDateUtc = DateTime.UtcNow
+          }
+        ]
+      });
+
+      if (simulation is null)
+      {
+        impactScore = 0;
+        impactSummary = "Simulation failed.";
+        lastUpdatedLabel = "Simulation failed";
+        return;
+      }
+
+      impactScore = BuildImpactScore(simulation.Delta.NetDelta, simulation.Delta.SavingsRateDeltaPercent);
+      impactSummary = $"Net delta {simulation.Delta.NetDelta:0} SEK • Savings delta {simulation.Delta.SavingsRateDeltaPercent:0.0}%";
+      lastUpdatedLabel = $"Updated {DateTime.Now:HH:mm:ss}";
+
+      simulationSparkline =
       [
-        new WhatIfActionDto
-        {
-          Type = selectedType,
-          Label = selectedType.ToString(),
-          CategoryName = categoryName,
-          Value = actionValue,
-          TransactionType = selectedType == WhatIfActionType.AddRecurringIncome ? PocketPilotAI.Core.Domain.Enums.TransactionType.Income : PocketPilotAI.Core.Domain.Enums.TransactionType.Expense,
-          IsRecurring = selectedType != WhatIfActionType.AddOneOffTransaction,
-          EffectiveDateUtc = DateTime.UtcNow
-        }
-      ]
-    });
-
-    if (simulation is null)
-    {
-      impactScore = 0;
-      impactSummary = "Simulation failed.";
-      lastUpdatedLabel = "Simulation failed";
-      return;
+        simulation.Baseline.Net,
+        simulation.Simulated.Net,
+        simulation.Baseline.SavingsRatePercent,
+        simulation.Simulated.SavingsRatePercent,
+        simulation.Delta.NetDelta,
+        simulation.Delta.SavingsRateDeltaPercent
+      ];
     }
-
-    impactScore = BuildImpactScore(simulation.Delta.NetDelta, simulation.Delta.SavingsRateDeltaPercent);
-    impactSummary = $"Net change {simulation.Delta.NetDelta:0} SEK, savings delta {simulation.Delta.SavingsRateDeltaPercent:0.0}%";
-    lastUpdatedLabel = $"Updated {DateTime.Now:HH:mm:ss}";
+    finally
+    {
+      isSimulating = false;
+    }
   }
 
   private void OnTemplateSelected(WhatIfScenarioTemplateDto template)
@@ -360,13 +441,13 @@
 
     try
     {
-      await Task.Delay(350, debounceCts.Token);
+      await Task.Delay(320, debounceCts.Token);
       await RunSimulation();
       await InvokeAsync(StateHasChanged);
     }
     catch (TaskCanceledException)
     {
-      // Ignore rapid input churn.
+      // Ignore rapid input changes.
     }
   }
 
@@ -379,8 +460,17 @@
     scenarioName = $"{template.Name} scenario";
   }
 
-  private string TemplateClass(WhatIfScenarioTemplateDto template)
-    => template.Name == selectedTemplateName ? "preset-chip selected" : "preset-chip";
+  private static string ToDisplay(WhatIfActionType type)
+    => type switch
+    {
+      WhatIfActionType.ReduceCategoryPercent => "Reduce category by %",
+      WhatIfActionType.ReduceCategoryFixed => "Reduce category by fixed amount",
+      WhatIfActionType.AddRecurringIncome => "Add recurring income",
+      WhatIfActionType.AddRecurringExpense => "Add recurring expense",
+      WhatIfActionType.AddOneOffTransaction => "Add one-off transaction",
+      WhatIfActionType.RemoveDetectedSubscriptions => "Remove detected subscriptions",
+      _ => type.ToString()
+    };
 
   private static int BuildImpactScore(decimal netDelta, decimal savingsRateDelta)
   {
@@ -398,9 +488,7 @@
   }
 
   private static string FormatMetric(decimal value, bool isPercent)
-    => isPercent
-      ? $"{value:0.0}%"
-      : $"{value:0} SEK";
+    => isPercent ? $"{value:0.0}%" : $"{value:0} SEK";
 
   private static IReadOnlyList<ComparisonRow> GetComparisonRows(WhatIfSimulationResultDto result)
     =>

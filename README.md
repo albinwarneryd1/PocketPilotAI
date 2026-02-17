@@ -9,7 +9,7 @@ AI-powered personal finance assistant built with .NET MAUI + Blazor.
 
 Track spending. Simulate scenarios. Make better financial decisions.
 
-## ✨ Why PocketPilotAI?
+##  Why PocketPilotAI?
 
 PocketPilotAI helps users:
 
@@ -17,7 +17,7 @@ PocketPilotAI helps users:
 - Simulate what-if scenarios before changing habits
 - Receive AI-generated guidance instead of raw analytics
 
-## 🚀 Core Features
+##  Core Features
 
 - Financial Health Score (0-100)
 - AI Monthly Narrative
@@ -26,7 +26,7 @@ PocketPilotAI helps users:
 - Decision-focused Insights
 - JWT + refresh-token authentication (Web + MAUI)
 
-## 📸 Screens
+##  Screens
 
 ### Overview
 <p align="center">
@@ -43,7 +43,7 @@ PocketPilotAI helps users:
   <img src="assets/screenshots/add-transaction.png" width="850" alt="Add transaction screen"/>
 </p>
 
-## 🧱 Tech Stack
+##  Tech Stack
 
 - .NET 10
 - ASP.NET Core Web API
@@ -54,7 +54,7 @@ PocketPilotAI helps users:
 - JWT + refresh tokens
 - xUnit (unit + integration/API tests)
 
-## 🧭 Architecture
+##  Architecture
 
 PocketPilotAI follows a layered architecture:
 
@@ -65,7 +65,7 @@ PocketPilotAI follows a layered architecture:
 
 The API is the source of truth. Web and MAUI share the same backend contracts and business rules.
 
-## 🗂️ Project Structure
+##  Project Structure
 
 ```text
 PocketPilotAI/
@@ -84,7 +84,7 @@ PocketPilotAI/
 └─ .github/workflows/
 ```
 
-## ▶️ Running Locally
+##  Running Locally
 
 ### Prerequisites
 
@@ -128,7 +128,7 @@ dotnet build src/PocketPilotAI.App/PocketPilotAI.App.csproj -f net10.0-maccataly
 open src/PocketPilotAI.App/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/PocketPilotAI.app
 ```
 
-## 🔐 Authentication Flow
+##  Authentication Flow
 
 - Register/login via API (`/api/auth/register`, `/api/auth/login`)
 - API returns access token + refresh token
@@ -138,7 +138,7 @@ open src/PocketPilotAI.App/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/Pocke
   - Web: session state
   - MAUI: secure storage on device
 
-## 🤖 AI Features
+##  AI Features
 
 - Leak detection: finds categories with highest savings potential
 - Monthly summary: plain-language financial narrative
@@ -146,7 +146,7 @@ open src/PocketPilotAI.App/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/Pocke
 
 Deterministic math (KPIs, deltas, forecasts) is always calculated server-side. AI is used for explanation and recommendation text.
 
-## 🧪 Tests
+##  Tests
 
 Run all tests:
 
@@ -161,7 +161,7 @@ dotnet test tests/PocketPilotAI.UnitTests/PocketPilotAI.UnitTests.csproj -c Rele
 dotnet test tests/PocketPilotAI.ApiTests/PocketPilotAI.ApiTests.csproj -c Release
 ```
 
-## 🔮 Next Steps
+##  Next Steps
 
 - Stronger recommendation ranking and confidence logic
 - Advanced scenario builder with multi-step plans
@@ -169,7 +169,7 @@ dotnet test tests/PocketPilotAI.ApiTests/PocketPilotAI.ApiTests.csproj -c Releas
 - Export/reporting support
 - Open Banking integrations
 
-## 🖼️ Screenshot Assets
+##  Screenshot Assets
 
 Place screenshots in:
 

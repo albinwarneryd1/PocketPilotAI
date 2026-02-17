@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
+    x:Name="InsightsPageRoot"
     x:Class="PocketPilotAI.App.Views.InsightsPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:ai="clr-namespace:PocketPilotAI.Core.Application.Dtos.Ai;assembly=PocketPilotAI.Core"
     xmlns:viewmodels="clr-namespace:PocketPilotAI.App.ViewModels"
     x:DataType="viewmodels:InsightsViewModel"
     Title="Insights">
@@ -29,6 +31,23 @@
             <Label Text="What-if simulation" FontAttributes="Bold" FontSize="18" />
             <Button Text="Load scenario templates" Command="{Binding LoadTemplatesCommand}" />
 
+            <CollectionView ItemsSource="{Binding Templates}" ItemsLayout="HorizontalList" HeightRequest="130">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="ai:WhatIfScenarioTemplateDto">
+                        <Border Padding="10" StrokeShape="RoundRectangle 12" Stroke="#DCE7F0" Margin="0,0,10,0">
+                            <VerticalStackLayout WidthRequest="220" Spacing="6">
+                                <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                <Label Text="{Binding Description}" FontSize="12" LineBreakMode="TailTruncation" />
+                                <Button Text="Use preset"
+                                        FontSize="12"
+                                        Command="{Binding Source={x:Reference InsightsPageRoot}, Path=BindingContext.ApplyTemplateCommand}"
+                                        CommandParameter="{Binding .}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
             <Entry Placeholder="Scenario name" Text="{Binding ScenarioName}" />
             <Entry Placeholder="Year" Keyboard="Numeric" Text="{Binding Year}" />
             <Entry Placeholder="Month" Keyboard="Numeric" Text="{Binding Month}" />
@@ -41,10 +60,33 @@
             <Button Text="Run what-if" Command="{Binding RunWhatIfCommand}" />
             <Label Text="{Binding SimulationSummary}" FontSize="12" />
 
-            <CollectionView ItemsSource="{Binding Recommendations}">
+            <VerticalStackLayout IsVisible="{Binding HasSimulationResult}" Spacing="8">
+                <Label Text="KPI comparison" FontAttributes="Bold" />
+                <CollectionView ItemsSource="{Binding KpiComparisons}" SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="viewmodels:KpiComparisonItem">
+                            <Border Padding="10" StrokeShape="RoundRectangle 12" Stroke="#DCE7F0" Margin="0,0,0,8">
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding Label}" FontAttributes="Bold" />
+                                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="5">
+                                        <Label Grid.Row="0" Grid.Column="0" Text="Baseline" FontSize="12" />
+                                        <ProgressBar Grid.Row="0" Grid.Column="1" Progress="{Binding BaselineRatio}" ProgressColor="#95A7B9" />
+                                        <Label Grid.Row="1" Grid.Column="0" Text="Simulated" FontSize="12" />
+                                        <ProgressBar Grid.Row="1" Grid.Column="1" Progress="{Binding SimulatedRatio}" ProgressColor="#1B85BF" />
+                                    </Grid>
+                                    <Label Text="{Binding BaselineText, StringFormat='Base: {0}'}" FontSize="12" TextColor="#556879" />
+                                    <Label Text="{Binding SimulatedText, StringFormat='Simulated: {0}'}" FontSize="12" TextColor="#556879" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <CollectionView ItemsSource="{Binding Recommendations}" IsVisible="{Binding HasSimulationResult}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Label Text="• {Binding .}" FontSize="12" Margin="0,0,0,8" />
+                        <Label Text="{Binding ., StringFormat='- {0}'}" FontSize="12" Margin="0,0,0,8" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

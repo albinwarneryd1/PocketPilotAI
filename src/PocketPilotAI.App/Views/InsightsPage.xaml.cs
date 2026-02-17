@@ -17,5 +17,6 @@ public partial class InsightsPage : ContentPage
   {
     base.OnAppearing();
     await viewModel.LoadAsync();
+    await viewModel.LoadTemplatesAsync();
   }
 }

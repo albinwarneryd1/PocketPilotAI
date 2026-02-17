@@ -15,12 +15,15 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
   private decimal value = 15m;
   private WhatIfActionType selectedActionType = WhatIfActionType.ReduceCategoryPercent;
   private string simulationSummary = string.Empty;
+  private bool hasSimulationResult;
 
   public ObservableCollection<InsightCardDto> Cards { get; } = [];
 
   public ObservableCollection<WhatIfScenarioTemplateDto> Templates { get; } = [];
 
   public ObservableCollection<string> Recommendations { get; } = [];
+
+  public ObservableCollection<KpiComparisonItem> KpiComparisons { get; } = [];
 
   public IReadOnlyList<WhatIfActionType> ActionTypes { get; } = Enum.GetValues<WhatIfActionType>();
 
@@ -66,9 +69,17 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
     set => SetProperty(ref simulationSummary, value);
   }
 
+  public bool HasSimulationResult
+  {
+    get => hasSimulationResult;
+    set => SetProperty(ref hasSimulationResult, value);
+  }
+
   public ICommand RefreshCommand => new Command(async () => await LoadAsync());
 
   public ICommand LoadTemplatesCommand => new Command(async () => await LoadTemplatesAsync());
+
+  public ICommand ApplyTemplateCommand => new Command<WhatIfScenarioTemplateDto>(ApplyTemplate);
 
   public ICommand RunWhatIfCommand => new Command(async () => await RunWhatIfAsync());
 
@@ -121,9 +132,7 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
     WhatIfScenarioTemplateDto? first = Templates.FirstOrDefault();
     if (first is not null)
     {
-      SelectedActionType = first.ActionType;
-      CategoryName = first.SuggestedCategory;
-      Value = first.SuggestedValue;
+      ApplyTemplate(first);
     }
   }
 
@@ -165,6 +174,8 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
       if (result is null)
       {
         SimulationSummary = "Simulation failed.";
+        HasSimulationResult = false;
+        KpiComparisons.Clear();
         return;
       }
 
@@ -176,10 +187,76 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
       {
         Recommendations.Add(rec);
       }
+
+      KpiComparisons.Clear();
+      foreach (KpiComparisonItem item in BuildComparisonItems(result))
+      {
+        KpiComparisons.Add(item);
+      }
+
+      HasSimulationResult = true;
     }
     finally
     {
       IsBusy = false;
     }
   }
+
+  private void ApplyTemplate(WhatIfScenarioTemplateDto? template)
+  {
+    if (template is null)
+    {
+      return;
+    }
+
+    SelectedActionType = template.ActionType;
+    CategoryName = template.SuggestedCategory;
+    Value = template.SuggestedValue;
+    ScenarioName = $"{template.Name} scenario";
+  }
+
+  private static IReadOnlyList<KpiComparisonItem> BuildComparisonItems(WhatIfSimulationResultDto result)
+    =>
+    [
+      CreateItem("Income", result.Baseline.Income, result.Simulated.Income, false),
+      CreateItem("Expenses", result.Baseline.Expenses, result.Simulated.Expenses, false),
+      CreateItem("Net", result.Baseline.Net, result.Simulated.Net, false),
+      CreateItem("Savings rate", result.Baseline.SavingsRatePercent, result.Simulated.SavingsRatePercent, true)
+    ];
+
+  private static KpiComparisonItem CreateItem(string label, decimal baseline, decimal simulated, bool isPercent)
+  {
+    decimal max = Math.Max(Math.Abs(baseline), Math.Abs(simulated));
+    double baselineRatio = max <= 0 ? 0 : decimal.ToDouble(Math.Abs(baseline) / max);
+    double simulatedRatio = max <= 0 ? 0 : decimal.ToDouble(Math.Abs(simulated) / max);
+
+    return new KpiComparisonItem
+    {
+      Label = label,
+      Baseline = baseline,
+      Simulated = simulated,
+      BaselineRatio = baselineRatio,
+      SimulatedRatio = simulatedRatio,
+      IsPercent = isPercent
+    };
+  }
+}
+
+public class KpiComparisonItem
+{
+  public string Label { get; set; } = string.Empty;
+
+  public decimal Baseline { get; set; }
+
+  public decimal Simulated { get; set; }
+
+  public double BaselineRatio { get; set; }
+
+  public double SimulatedRatio { get; set; }
+
+  public bool IsPercent { get; set; }
+
+  public string BaselineText => IsPercent ? $"{Baseline:0.0}%" : $"{Baseline:0} SEK";
+
+  public string SimulatedText => IsPercent ? $"{Simulated:0.0}%" : $"{Simulated:0} SEK";
 }

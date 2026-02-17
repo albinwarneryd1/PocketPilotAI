@@ -2,12 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
+    <ProjectReference Include="..\PocketPilotAI.Core\PocketPilotAI.Core.csproj" />
+    <ProjectReference Include="..\PocketPilotAI.Contracts\PocketPilotAI.Contracts.csproj" />
+    <ProjectReference Include="..\PocketPilotAI.Infrastructure\PocketPilotAI.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
   </ItemGroup>
 
 </Project>

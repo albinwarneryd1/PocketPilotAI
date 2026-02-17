@@ -176,3 +176,72 @@ select {
   display: flex;
   gap: 0.6rem;
 }
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+}
+
+.preset-chip {
+  border: 1px solid var(--line);
+  background: #f7fafc;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  display: grid;
+  text-align: left;
+  line-height: 1.1;
+  gap: 0.18rem;
+  cursor: pointer;
+}
+
+.preset-chip small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.preset-chip.selected {
+  background: linear-gradient(120deg, rgba(19, 143, 122, 0.14), rgba(11, 106, 168, 0.14));
+  border-color: rgba(11, 106, 168, 0.45);
+}
+
+.compare-row {
+  margin-bottom: 0.7rem;
+}
+
+.compare-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.compare-label strong {
+  font-size: 0.9rem;
+}
+
+.compare-bars {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.compare-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #dce7f0;
+}
+
+.compare-bar > div {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.compare-bar.baseline > div {
+  background: linear-gradient(120deg, #95a7b9, #6f879d);
+}
+
+.compare-bar.simulated > div {
+  background: linear-gradient(120deg, #23b38d, #1b85bf);
+}

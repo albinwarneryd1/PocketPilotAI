@@ -31,6 +31,19 @@ else
   <h3>What-if simulation</h3>
   <p class="muted">Model monthly impact before changing your habits.</p>
 
+  @if (templates.Any())
+  {
+    <div class="preset-row">
+      @foreach (var template in templates)
+      {
+        <button type="button" class="@TemplateClass(template)" @onclick="@(() => ApplyTemplate(template))">
+          <span>@template.Name</span>
+          <small>@template.SuggestedCategory - @template.SuggestedValue.ToString("0.#")</small>
+        </button>
+      }
+    </div>
+  }
+
   <div class="form-grid">
     <label>
       Scenario name
@@ -96,6 +109,31 @@ else
     </div>
 
     <article class="insight-card" style="margin-top: 0.8rem;">
+      <h4>KPI comparison</h4>
+      @foreach (var row in GetComparisonRows(simulation))
+      {
+        decimal max = Math.Max(Math.Abs(row.Baseline), Math.Abs(row.Simulated));
+        <div class="compare-row">
+          <div class="compare-label">
+            <span>@row.Label</span>
+            <strong>@FormatMetric(row.Simulated, row.IsPercent)</strong>
+          </div>
+
+          <div class="compare-bars">
+            <div class="compare-bar baseline">
+              <div style="width:@BarWidth(row.Baseline, max)"></div>
+            </div>
+            <div class="compare-bar simulated">
+              <div style="width:@BarWidth(row.Simulated, max)"></div>
+            </div>
+          </div>
+
+          <small class="muted">Baseline @FormatMetric(row.Baseline, row.IsPercent) -> Simulated @FormatMetric(row.Simulated, row.IsPercent)</small>
+        </div>
+      }
+    </article>
+
+    <article class="insight-card" style="margin-top: 0.8rem;">
       <h4>Recommendations</h4>
       <ul>
         @foreach (var recommendation in simulation.Recommendations)
@@ -119,15 +157,14 @@ else
   private WhatIfActionType selectedType = WhatIfActionType.ReduceCategoryPercent;
   private string categoryName = "Eating Out";
   private decimal actionValue = 15;
+  private string selectedTemplateName = string.Empty;
 
   protected override async Task OnInitializedAsync()
   {
     templates = await InsightsApi.GetWhatIfTemplatesAsync();
     if (templates.Any())
     {
-      selectedType = templates[0].ActionType;
-      categoryName = templates[0].SuggestedCategory;
-      actionValue = templates[0].SuggestedValue;
+      ApplyTemplate(templates[0]);
     }
   }
 
@@ -163,4 +200,38 @@ else
       ]
     });
   }
+
+  private void ApplyTemplate(WhatIfScenarioTemplateDto template)
+  {
+    selectedTemplateName = template.Name;
+    selectedType = template.ActionType;
+    categoryName = template.SuggestedCategory;
+    actionValue = template.SuggestedValue;
+    scenarioName = $"{template.Name} scenario";
+  }
+
+  private string TemplateClass(WhatIfScenarioTemplateDto template)
+    => template.Name == selectedTemplateName ? "preset-chip selected" : "preset-chip";
+
+  private static string BarWidth(decimal value, decimal max)
+  {
+    decimal width = max <= 0 ? 0 : (Math.Abs(value) / max) * 100m;
+    return $"{width:0}%";
+  }
+
+  private static string FormatMetric(decimal value, bool isPercent)
+    => isPercent
+      ? $"{value:0.0}%"
+      : $"{value:0} SEK";
+
+  private static IReadOnlyList<ComparisonRow> GetComparisonRows(WhatIfSimulationResultDto result)
+    =>
+    [
+      new("Income", result.Baseline.Income, result.Simulated.Income),
+      new("Expenses", result.Baseline.Expenses, result.Simulated.Expenses),
+      new("Net", result.Baseline.Net, result.Simulated.Net),
+      new("Savings rate", result.Baseline.SavingsRatePercent, result.Simulated.SavingsRatePercent, true)
+    ];
+
+  private sealed record ComparisonRow(string Label, decimal Baseline, decimal Simulated, bool IsPercent = false);
 }

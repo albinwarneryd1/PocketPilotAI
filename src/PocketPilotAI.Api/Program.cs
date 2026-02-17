@@ -12,15 +12,22 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
+
+int authPermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:Auth:PermitLimit")
+  ?? (builder.Environment.IsDevelopment() ? 120 : 8);
+int authQueueLimit = builder.Configuration.GetValue<int?>("RateLimiting:Auth:QueueLimit")
+  ?? (builder.Environment.IsDevelopment() ? 20 : 2);
+int authWindowSeconds = builder.Configuration.GetValue<int?>("RateLimiting:Auth:WindowSeconds") ?? 60;
+
 builder.Services.AddRateLimiter(options =>
 {
   options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
   options.AddFixedWindowLimiter("auth-login", policy =>
   {
-    policy.PermitLimit = 8;
-    policy.Window = TimeSpan.FromMinutes(1);
+    policy.PermitLimit = authPermitLimit;
+    policy.Window = TimeSpan.FromSeconds(authWindowSeconds);
     policy.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    policy.QueueLimit = 2;
+    policy.QueueLimit = authQueueLimit;
   });
 });
 

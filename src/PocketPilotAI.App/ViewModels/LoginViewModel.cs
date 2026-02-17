@@ -61,7 +61,7 @@ public class LoginViewModel(AuthApi authApi, UserSessionService sessionService) 
 
     try
     {
-      AuthTokenDto? response = IsRegisterMode
+      AuthResult result = IsRegisterMode
         ? await authApi.RegisterAsync(new RegisterUserRequest
         {
           DisplayName = string.IsNullOrWhiteSpace(DisplayName) ? Email : DisplayName,
@@ -74,13 +74,13 @@ public class LoginViewModel(AuthApi authApi, UserSessionService sessionService) 
           Password = Password
         });
 
-      if (response is null)
+      if (result.Token is null)
       {
-        StatusMessage = "Authentication failed. Check credentials/API.";
+        StatusMessage = result.Error ?? "Authentication failed. Check credentials/API.";
         return;
       }
 
-      await sessionService.SetSessionAsync(response);
+      await sessionService.SetSessionAsync(result.Token);
       AuthenticationSucceeded?.Invoke();
     }
     finally

@@ -1,355 +1,192 @@
 # PocketPilotAI
 
 [![CI](https://github.com/albinwarneryd1/PocketPilotAI/actions/workflows/ci.yml/badge.svg)](https://github.com/albinwarneryd1/PocketPilotAI/actions/workflows/ci.yml)
-[![License: TBD](https://img.shields.io/badge/license-TBD-lightgrey.svg)](#license)
+[![.NET](https://img.shields.io/badge/.NET-10-0f172a)](https://dotnet.microsoft.com/)
+[![License](https://img.shields.io/badge/license-TBD-lightgrey)](#license)
 
-PocketPilotAI is a cross-platform personal finance application that helps users understand spending behavior and improve monthly cash flow using actionable AI insights.
+AI-powered personal finance assistant built with .NET MAUI + Blazor.
 
-## Quick Start
+<p align="center">
+  <img src="assets/screenshots/hero-overview.png" width="900" alt="PocketPilotAI overview hero"/>
+</p>
 
-```bash
-# 1) Clone
-git clone https://github.com/albinwarneryd1/PocketPilotAI.git
-cd PocketPilotAI
+Track spending. Simulate scenarios. Make better financial decisions.
 
-# 2) Restore
-dotnet restore PocketPilotAI.sln
+## ✨ Why PocketPilotAI?
 
-# 3) Set env vars (or user-secrets/appsettings)
-cp .env.example .env
+PocketPilotAI helps users:
 
-# 4) Run API (applies migrations on startup by default)
-dotnet run --project src/PocketPilotAI.Api --urls https://localhost:7174
+- Understand their monthly financial health instantly
+- Simulate what-if scenarios before changing habits
+- Receive AI-generated guidance instead of raw analytics
 
-# 5) Run MAUI (MacCatalyst)
-export POCKETPILOTAI_API_BASE_URL="https://localhost:7174"
-dotnet build src/PocketPilotAI.App/PocketPilotAI.App.csproj -f net10.0-maccatalyst
-open src/PocketPilotAI.App/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/PocketPilotAI.app
+## 🚀 Core Features
 
-# 6) Run Web client
-dotnet run --project src/PocketPilotAI.Web
-```
+- Financial Health Score (0-100)
+- AI Monthly Narrative
+- What-if Simulation Engine
+- Smart Transaction Pattern Detection
+- Decision-focused Insights
+- JWT + refresh-token authentication (Web + MAUI)
 
-If `dotnet run` fails with `PocketPilotAI.App.app ... no such file`, use the `open .../PocketPilotAI.app` command above.
+## 📸 Screens
 
-## 1. Project Overview
+### Overview
+<p align="center">
+  <img src="assets/screenshots/overview.png" width="850" alt="Overview screen"/>
+</p>
 
-PocketPilotAI solves a common problem: people track expenses, but still struggle to know what to change.
+### Insights & Simulation
+<p align="center">
+  <img src="assets/screenshots/insights.png" width="850" alt="Insights and simulation screen"/>
+</p>
 
-It combines traditional finance tracking with AI-assisted analysis to answer:
+### Transactions
+<p align="center">
+  <img src="assets/screenshots/transactions.png" width="850" alt="Transactions screen"/>
+</p>
 
-- Where are my spending leaks?
-- What small changes can I make this month?
-- How would a scenario impact my net cash flow?
+### Add Transaction
+<p align="center">
+  <img src="assets/screenshots/add-transaction.png" width="850" alt="Add transaction screen"/>
+</p>
 
-### Key Features
+## 🧱 Tech Stack
 
-- Transaction tracking (income/expense) with categories and merchants
-- Budget tracking and monthly spend visibility
-- AI leak detection based on user transaction data
-- Monthly summary insights
-- What-if simulation engine for scenario-based KPI recalculation
-- JWT + refresh-token authentication across Web and MAUI
-- Demo seed data for fast development/testing
+- .NET 10
+- ASP.NET Core Web API
+- Blazor Web
+- .NET MAUI (mobile/desktop)
+- Entity Framework Core
+- SQLite / SQL Server
+- JWT + refresh tokens
+- xUnit (unit + integration/API tests)
 
-### Why AI in PocketPilotAI
+## 🧭 Architecture
 
-AI is used to convert transaction patterns into practical recommendations. Core financial calculations remain deterministic in the backend; AI adds explanation quality and suggestion framing.
+PocketPilotAI follows a layered architecture:
 
-## 2. Architecture Overview
+- `Core`: Domain models, DTOs, interfaces, validation
+- `Infrastructure`: EF Core persistence, services, AI integration, seed logic
+- `API`: Auth, endpoints, middleware, OpenAPI
+- `Clients`: Blazor Web + .NET MAUI app
 
-PocketPilotAI follows a layered architecture with API-first boundaries and shared business logic.
+The API is the source of truth. Web and MAUI share the same backend contracts and business rules.
 
-- **Core**: domain entities, DTOs, contracts, and application interfaces
-- **Infrastructure**: EF Core persistence, auth implementation, AI integration, seeding
-- **API**: HTTP surface, authentication, middleware, endpoint orchestration
-- **Clients (Web + MAUI)**: presentation, session state, and API consumption
-
-### Responsibility Split
-
-- Business rules and calculations belong in Core/Infrastructure services.
-- API controllers stay thin and coordinate request/response.
-- Clients should not contain domain logic.
-
-## 3. Project Structure
+## 🗂️ Project Structure
 
 ```text
 PocketPilotAI/
 ├─ src/
-│  ├─ PocketPilotAI.Core/            # Domain + application contracts
-│  ├─ PocketPilotAI.Infrastructure/  # EF Core + service implementations + AI client
-│  ├─ PocketPilotAI.Api/             # ASP.NET Core API, auth, middleware, endpoints
-│  ├─ PocketPilotAI.Web/             # Blazor web client
-│  ├─ PocketPilotAI.App/             # .NET MAUI client
-│  └─ PocketPilotAI.Contracts/       # Shared API contract models
+│  ├─ PocketPilotAI.Core/
+│  ├─ PocketPilotAI.Infrastructure/
+│  ├─ PocketPilotAI.Api/
+│  ├─ PocketPilotAI.Web/
+│  ├─ PocketPilotAI.App/
+│  └─ PocketPilotAI.Contracts/
 ├─ tests/
 │  ├─ PocketPilotAI.UnitTests/
 │  ├─ PocketPilotAI.IntegrationTests/
 │  └─ PocketPilotAI.ApiTests/
-├─ tools/scripts/                    # DB helper scripts
-├─ docs/                             # Architecture/API/docs
-└─ .github/workflows/ci.yml          # CI pipeline
+├─ tools/scripts/
+└─ .github/workflows/
 ```
 
-## 4. Tech Stack
-
-### Backend
-
-- .NET 10 / ASP.NET Core Web API
-- Entity Framework Core
-- JWT Bearer authentication
-- Refresh token rotation + reuse detection
-
-### Frontend
-
-- Blazor Web (interactive server components)
-- .NET MAUI (Android, iOS, MacCatalyst, Windows)
-
-### Database
-
-- SQL Server (primary runtime target)
-- EF Core migrations for schema evolution
-- SQLite used in API test environment
-
-### AI Components
-
-- OpenAI Responses API integration (`gpt-4.1-mini` default)
-- Prompt-template based leak and summary generation
-- Deterministic what-if simulation and KPI delta calculation
-
-## 5. Getting Started (Step-by-Step)
+## ▶️ Running Locally
 
 ### Prerequisites
 
-- .NET SDK `10.0.103` (see `global.json`)
-- SQL Server instance (local/container/remote)
-- Optional: .NET MAUI workloads for app development
-- Optional: `dotnet-ef` tool for manual migration commands
+- .NET SDK (see `global.json`)
+- SQL Server (optional) or SQLite for local dev
+- MAUI workloads if you want to run the app client
 
-Install EF tool if needed:
-
-```bash
-dotnet tool install --global dotnet-ef
-```
-
-### 1) Clone
+### 1) Clone + restore
 
 ```bash
 git clone https://github.com/albinwarneryd1/PocketPilotAI.git
 cd PocketPilotAI
-```
-
-### 2) Restore packages
-
-```bash
 dotnet restore PocketPilotAI.sln
 ```
 
-### 3) Configure connection string + secrets
-
-Set configuration via environment variables or `appsettings.Development.json`.
-
-Minimum required values:
-
-- `POCKETPILOTAI_CONNECTION`
-- `POCKETPILOTAI_JWT_KEY`
-
-Optional (AI):
-
-- `OPENAI_API_KEY`
-
-See `.env.example` for available keys.
-
-### 4) Apply EF migrations
-
-The API applies migrations on startup by default.
-
-Manual option:
+### 2) Start API (local SQLite, no paid services required)
 
 ```bash
-# macOS/Linux
-./tools/scripts/db-update.sh
+export ASPNETCORE_ENVIRONMENT=Development
+export Database__Provider=sqlite
+export ConnectionStrings__DefaultConnection="Data Source=$PWD/pocketpilotai.local.db"
+export POCKETPILOTAI_JWT_KEY="replace-with-a-long-random-secret"
+export DEMOSEED__ENABLED=true
 
-# PowerShell
-./tools/scripts/db-update.ps1
-```
-
-### 5) Seed demo data
-
-Default behavior:
-
-- `DemoSeed:Enabled=true` in development triggers seed on API startup.
-
-Optional dev endpoints (requires authenticated user, Development environment):
-
-- `POST /api/dev/seed/apply`
-- `POST /api/dev/seed/reset`
-
-### 6) Run API
-
-```bash
 dotnet run --project src/PocketPilotAI.Api --urls https://localhost:7174
 ```
 
-### 7) Run MAUI client (MacCatalyst)
-
-```bash
-export POCKETPILOTAI_API_BASE_URL="https://localhost:7174"
-dotnet build src/PocketPilotAI.App/PocketPilotAI.App.csproj -f net10.0-maccatalyst
-open src/PocketPilotAI.App/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/PocketPilotAI.app
-```
-
-MAUI API base URL is configurable through:
-
-- `POCKETPILOTAI_API_BASE_URL`
-
-Known issue (current tooling):
-
-- In some .NET 10 + MacCatalyst setups, `dotnet run` tries to open `PocketPilotAI.App.app` while the built bundle is `PocketPilotAI.app`.
-- Use the `open .../PocketPilotAI.app` command as a reliable workaround.
-
-### 8) Run Web client
+### 3) Start Web client
 
 ```bash
 dotnet run --project src/PocketPilotAI.Web
 ```
 
-Default API base URL in Web: `https://localhost:7174` (configurable via `ApiBaseUrl`).
+Open: `https://localhost:7113`
 
-## 6. Configuration
-
-### App settings
-
-Main API config lives in:
-
-- `src/PocketPilotAI.Api/appsettings.json`
-- `src/PocketPilotAI.Api/appsettings.Development.json`
-
-Key sections:
-
-- `ConnectionStrings:DefaultConnection`
-- `Jwt:Issuer`, `Jwt:Audience`, `Jwt:Key`, `Jwt:ExpirationMinutes`
-- `Ai:Model`
-- `DemoSeed:Enabled`
-- `Database:ApplyMigrationsOnStartup`
-
-### Environment variables
-
-Supported runtime variables include:
-
-- `POCKETPILOTAI_CONNECTION`
-- `POCKETPILOTAI_JWT_ISSUER`
-- `POCKETPILOTAI_JWT_AUDIENCE`
-- `POCKETPILOTAI_JWT_KEY`
-- `OPENAI_API_KEY`
-- `DEMOSEED__ENABLED`
-- `POCKETPILOTAI_API_BASE_URL` (MAUI)
-
-### Secrets handling
-
-- Use environment variables or `dotnet user-secrets` for local secrets.
-- Do not commit real secrets to git.
-- Keep production secrets in secure secret stores (for example cloud key vaults).
-
-## 7. Authentication Flow
-
-- User registers or logs in via `POST /api/auth/register` or `POST /api/auth/login`.
-- API returns:
-  - short-lived **access token** (JWT)
-  - long-lived **refresh token**
-- Access token is sent in `Authorization: Bearer <token>`.
-- On `401`, clients call `POST /api/auth/refresh` and rotate tokens.
-- Refresh token reuse is detected server-side; on detected reuse, active sessions are revoked.
-
-### Token storage by client
-
-- **Web**: session state in-memory (`UserSessionState`) with automatic refresh handling.
-- **MAUI**: tokens persisted using `SecureStorage` (`UserSessionService`).
-
-## 8. AI Features
-
-### Leak Detection
-
-`POST /api/insights/leaks`
-
-- Compares current vs previous period category spending
-- Returns prioritized leak cards with estimated savings and concrete actions
-
-### Monthly Summary
-
-`POST /api/insights/monthly-summary`
-
-- Summarizes income/expense balance and spending profile
-
-### What-if Simulation
-
-`GET /api/insights/what-if/templates`
-`POST /api/insights/what-if/simulate`
-
-- Applies scenario actions (reduce category %, fixed reduction, recurring income/expense, one-off, remove subscriptions)
-- Recalculates KPIs and returns baseline/simulated deltas + recommendations
-
-### Deterministic vs AI-generated
-
-- KPI math, scenario effects, and deltas are deterministic backend logic.
-- AI is used for narrative insight generation when `OPENAI_API_KEY` is configured.
-- If AI is unavailable, fallback logic still returns usable insights.
-
-## 9. Development Notes
-
-### Migrations workflow
-
-Create migration:
+### 4) Start MAUI (MacCatalyst)
 
 ```bash
-dotnet ef migrations add <MigrationName> \
-  --project src/PocketPilotAI.Infrastructure \
-  --startup-project src/PocketPilotAI.Api
+export POCKETPILOTAI_API_BASE_URL="https://localhost:7174"
+dotnet build src/PocketPilotAI.App/PocketPilotAI.App.csproj -f net10.0-maccatalyst -c Debug
+open src/PocketPilotAI.App/bin/Debug/net10.0-maccatalyst/maccatalyst-arm64/PocketPilotAI.app
 ```
 
-Apply migration:
+## 🔐 Authentication Flow
+
+- Register/login via API (`/api/auth/register`, `/api/auth/login`)
+- API returns access token + refresh token
+- Access token secures API calls (`Authorization: Bearer ...`)
+- Refresh token is rotated via `/api/auth/refresh`
+- Token storage:
+  - Web: session state
+  - MAUI: secure storage on device
+
+## 🤖 AI Features
+
+- Leak detection: finds categories with highest savings potential
+- Monthly summary: plain-language financial narrative
+- What-if simulation: scenario templates with KPI deltas
+
+Deterministic math (KPIs, deltas, forecasts) is always calculated server-side. AI is used for explanation and recommendation text.
+
+## 🧪 Tests
+
+Run all tests:
 
 ```bash
-dotnet ef database update \
-  --project src/PocketPilotAI.Infrastructure \
-  --startup-project src/PocketPilotAI.Api
+dotnet test PocketPilotAI.sln -c Release
 ```
 
-### Safe feature development
+Run specific suites:
 
-- Add/modify domain models in `Core` first.
-- Implement behavior in `Infrastructure` services.
-- Expose through API controllers.
-- Consume via typed API clients in Web/MAUI.
-- Add tests in `UnitTests`, `IntegrationTests`, or `ApiTests` based on scope.
+```bash
+dotnet test tests/PocketPilotAI.UnitTests/PocketPilotAI.UnitTests.csproj -c Release
+dotnet test tests/PocketPilotAI.ApiTests/PocketPilotAI.ApiTests.csproj -c Release
+```
 
-### Common pitfalls
+## 🔮 Next Steps
 
-- Putting business logic in controllers or UI layers
-- Forgetting migration updates after model changes
-- Hardcoding secrets in config files
-- Using AI output as source-of-truth for calculations
+- Stronger recommendation ranking and confidence logic
+- Advanced scenario builder with multi-step plans
+- Richer analytics dashboards
+- Export/reporting support
+- Open Banking integrations
 
-## 10. Roadmap
+## 🖼️ Screenshot Assets
 
-- Improve recommendation ranking and confidence scoring
-- Expand analytics dashboards and trend visualizations
-- CSV/export pipeline improvements (reports, statement exports)
-- Advanced multi-action scenario builder with saved simulations
+Place screenshots in:
 
-## 11. Screenshots
+- `assets/screenshots/hero-overview.png`
+- `assets/screenshots/overview.png`
+- `assets/screenshots/insights.png`
+- `assets/screenshots/transactions.png`
+- `assets/screenshots/add-transaction.png`
 
-Screenshots can be added in `docs/screenshots/`.
+## License
 
-Suggested assets:
-
-- Overview dashboard
-- Transactions flow
-- AI insights cards
-- What-if simulation (Web + MAUI)
-
-## 12. License
-
-License is currently **TBD**.
-
-Add your preferred license file (for example MIT) and update this section.
+TBD.

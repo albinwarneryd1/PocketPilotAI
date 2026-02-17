@@ -20,7 +20,7 @@ public static class ServiceCollectionExtensions
       throw new InvalidOperationException("Missing connection string. Configure ConnectionStrings:DefaultConnection or POCKETPILOTAI_CONNECTION.");
     }
 
-    services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+    services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 
     services.AddHttpClient<OpenAiClient>();
 

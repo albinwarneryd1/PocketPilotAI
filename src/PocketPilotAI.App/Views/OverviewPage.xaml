@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="PocketPilotAI.App.Views.OverviewPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:PocketPilotAI.App.ViewModels"
+    x:DataType="viewmodels:OverviewViewModel"
+    Title="Overview">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
+            <Button Text="Refresh" Command="{Binding RefreshCommand}" />
+            <Label Text="Monthly Income" FontSize="14" />
+            <Label Text="{Binding Income, StringFormat='{0:0} SEK'}" FontSize="22" FontAttributes="Bold" />
+            <Label Text="Monthly Expenses" FontSize="14" />
+            <Label Text="{Binding Expenses, StringFormat='{0:0} SEK'}" FontSize="22" FontAttributes="Bold" />
+            <Label Text="Remaining Budget" FontSize="14" />
+            <Label Text="{Binding RemainingBudget, StringFormat='{0:0} SEK'}" FontSize="22" FontAttributes="Bold" />
+            <Label Text="Top Merchant" FontSize="14" />
+            <Label Text="{Binding TopMerchant}" FontSize="18" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

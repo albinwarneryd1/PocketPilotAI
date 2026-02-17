@@ -3,12 +3,29 @@
     x:Class="PocketPilotAI.App.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:PocketPilotAI.App"
-    Title="PocketPilotAI.App">
+    xmlns:views="clr-namespace:PocketPilotAI.App.Views"
+    xmlns:routes="clr-namespace:PocketPilotAI.App.Navigation"
+    Title="PocketPilotAI">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+        <ShellContent
+            Title="Overview"
+            Route="{x:Static routes:Routes.Overview}"
+            ContentTemplate="{DataTemplate views:OverviewPage}" />
 
+        <ShellContent
+            Title="Transactions"
+            Route="{x:Static routes:Routes.Transactions}"
+            ContentTemplate="{DataTemplate views:TransactionsPage}" />
+
+        <ShellContent
+            Title="Add"
+            Route="{x:Static routes:Routes.AddTransaction}"
+            ContentTemplate="{DataTemplate views:AddTransactionPage}" />
+
+        <ShellContent
+            Title="Insights"
+            Route="{x:Static routes:Routes.Insights}"
+            ContentTemplate="{DataTemplate views:InsightsPage}" />
+    </TabBar>
 </Shell>

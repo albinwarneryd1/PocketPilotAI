@@ -1,16 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
 namespace PocketPilotAI.App;
 
 public partial class App : Application
 {
-	public App()
-	{
-		InitializeComponent();
-	}
-
-	protected override Window CreateWindow(IActivationState? activationState)
-	{
-		return new Window(new AppShell());
-	}
+  public App(AppShell shell)
+  {
+    InitializeComponent();
+    MainPage = shell;
+  }
 }

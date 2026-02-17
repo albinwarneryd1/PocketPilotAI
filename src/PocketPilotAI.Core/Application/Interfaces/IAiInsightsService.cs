@@ -15,6 +15,10 @@ public interface IAiInsightsService
     MonthlySummaryRequest request,
     CancellationToken cancellationToken = default);
 
+  Task<Result<IReadOnlyList<WhatIfScenarioTemplateDto>>> GetWhatIfTemplatesAsync(
+    Guid userId,
+    CancellationToken cancellationToken = default);
+
   Task<Result<WhatIfSimulationResultDto>> RunWhatIfSimulationAsync(
     Guid userId,
     WhatIfSimulationRequest request,

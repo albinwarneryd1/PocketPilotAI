@@ -24,6 +24,8 @@ public class Transaction
 
   public TransactionType Type { get; set; } = TransactionType.Expense;
 
+  public TransactionSource Source { get; set; } = TransactionSource.Manual;
+
   public string Notes { get; set; } = string.Empty;
 
   public bool IsRecurring { get; set; }

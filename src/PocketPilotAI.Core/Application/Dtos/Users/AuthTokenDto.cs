@@ -6,5 +6,9 @@ public class AuthTokenDto
 
   public DateTime ExpiresUtc { get; set; }
 
+  public string RefreshToken { get; set; } = string.Empty;
+
+  public DateTime RefreshTokenExpiresUtc { get; set; }
+
   public UserDto User { get; set; } = new();
 }

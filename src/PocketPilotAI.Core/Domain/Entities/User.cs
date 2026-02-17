@@ -10,6 +10,12 @@ public class User
 
   public string PasswordHash { get; set; } = string.Empty;
 
+  public string PasswordSalt { get; set; } = string.Empty;
+
+  public int PasswordIterations { get; set; } = 120_000;
+
+  public bool IsDemo { get; set; }
+
   public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 
   public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
@@ -23,4 +29,6 @@ public class User
   public ICollection<Category> Categories { get; set; } = new List<Category>();
 
   public ICollection<RecurringPayment> RecurringPayments { get; set; } = new List<RecurringPayment>();
+
+  public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

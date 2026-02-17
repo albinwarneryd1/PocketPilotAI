@@ -1,6 +1,6 @@
 @implements IDisposable
 
-<section class="metric-hero card-rise">
+<HeroCard AdditionalClass="metric-hero card-rise">
   <div class="metric-hero-copy">
     @if (!string.IsNullOrWhiteSpace(Eyebrow))
     {
@@ -11,12 +11,31 @@
 
     @if (!string.IsNullOrWhiteSpace(Subtitle))
     {
-      <p class="muted">@Subtitle</p>
+      <p class="primary-copy">@Subtitle</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(MicroExplanation))
+    {
+      <p class="supporting-text">@MicroExplanation</p>
+    }
+
+    @if (SparklinePoints.Any())
+    {
+      decimal max = SparklinePoints.Max();
+      <div class="sparkline" aria-hidden="true">
+        @foreach (var point in SparklinePoints)
+        {
+          decimal height = max <= 0 ? 12 : Math.Max(12, (point / max) * 36);
+          <span style="height:@($"{height:0}px")"></span>
+        }
+      </div>
     }
 
     @if (!string.IsNullOrWhiteSpace(PrimaryActionLabel) && !string.IsNullOrWhiteSpace(PrimaryActionHref))
     {
-      <a class="btn-primary" href="@PrimaryActionHref">@PrimaryActionLabel</a>
+      <div class="metric-hero-actions">
+        <a class="btn-primary" href="@PrimaryActionHref">@PrimaryActionLabel</a>
+      </div>
     }
   </div>
 
@@ -33,7 +52,7 @@
       <p class="score-label">@ValueLabel</p>
     }
   </div>
-</section>
+</HeroCard>
 
 @code {
   [Parameter] public string Eyebrow { get; set; } = string.Empty;
@@ -42,6 +61,8 @@
 
   [Parameter] public string Subtitle { get; set; } = string.Empty;
 
+  [Parameter] public string MicroExplanation { get; set; } = string.Empty;
+
   [Parameter] public int Score { get; set; }
 
   [Parameter] public string ValueLabel { get; set; } = string.Empty;
@@ -49,6 +70,8 @@
   [Parameter] public string PrimaryActionLabel { get; set; } = string.Empty;
 
   [Parameter] public string PrimaryActionHref { get; set; } = string.Empty;
+
+  [Parameter] public IReadOnlyList<decimal> SparklinePoints { get; set; } = [];
 
   private int displayScore;
   private CancellationTokenSource? animationCts;

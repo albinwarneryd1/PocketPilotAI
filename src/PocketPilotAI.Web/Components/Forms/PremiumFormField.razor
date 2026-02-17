@@ -1,0 +1,28 @@
+<div class="premium-field">
+  @if (!string.IsNullOrWhiteSpace(Label))
+  {
+    <label class="field-label">@Label</label>
+  }
+
+  @if (!string.IsNullOrWhiteSpace(HelpText))
+  {
+    <p class="field-help">@HelpText</p>
+  }
+
+  @ChildContent
+
+  @if (!string.IsNullOrWhiteSpace(ErrorText))
+  {
+    <p class="field-error">@ErrorText</p>
+  }
+</div>
+
+@code {
+  [Parameter] public string Label { get; set; } = string.Empty;
+
+  [Parameter] public string HelpText { get; set; } = string.Empty;
+
+  [Parameter] public string ErrorText { get; set; } = string.Empty;
+
+  [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = default!;
+}

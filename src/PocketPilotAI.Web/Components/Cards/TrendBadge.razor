@@ -1,4 +1,7 @@
-<span class="trend-badge @ClassName">@Label</span>
+<span class="trend-badge @ClassName">
+  <span class="trend-icon" aria-hidden="true">@Icon</span>
+  <span>@Label</span>
+</span>
 
 @code {
   [Parameter] public string Label { get; set; } = string.Empty;
@@ -10,5 +13,12 @@
     "up" => "up",
     "down" => "down",
     _ => "neutral"
+  };
+
+  private string Icon => Variant.ToLowerInvariant() switch
+  {
+    "up" => "▲",
+    "down" => "▼",
+    _ => "•"
   };
 }

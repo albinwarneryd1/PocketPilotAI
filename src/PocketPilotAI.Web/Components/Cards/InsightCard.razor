@@ -8,10 +8,19 @@
 
   <div class="insight-foot">
     <p><strong>Action:</strong> @Item.SuggestedAction</p>
-    <p class="save-pill">@Item.EstimatedMonthlySavings.ToString("0") SEK / month potential</p>
+    <span class="save-pill">Saves ~@Item.EstimatedMonthlySavings.ToString("0") SEK/month</span>
+
+    @if (!string.IsNullOrWhiteSpace(ActionHref))
+    {
+      <a class="btn-tertiary" href="@ActionHref">@ActionLabel</a>
+    }
   </div>
 </article>
 
 @code {
   [Parameter, EditorRequired] public InsightCardDto Item { get; set; } = default!;
+
+  [Parameter] public string ActionLabel { get; set; } = "View";
+
+  [Parameter] public string ActionHref { get; set; } = "/insights";
 }

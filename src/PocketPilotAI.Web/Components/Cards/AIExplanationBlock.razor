@@ -1,16 +1,21 @@
-<article class="ai-explanation card-rise">
-  <p class="metric-eyebrow">AI Narrative</p>
+<InlineCard AdditionalClass="ai-explanation card-rise">
+  <span class="ai-tag">AI context</span>
   <h3>@Title</h3>
 
   @if (IsLoading)
   {
-    <p class="muted">Generating practical summary...</p>
+    <div class="skeleton-stack" aria-hidden="true">
+      <span class="skeleton-line full"></span>
+      <span class="skeleton-line medium"></span>
+      <span class="skeleton-line short"></span>
+    </div>
+    <p class="supporting-text">Generating your monthly insights...</p>
   }
   else
   {
-    <p>@Body</p>
+    <p class="ai-body">@Body</p>
   }
-</article>
+</InlineCard>
 
 @code {
   [Parameter] public string Title { get; set; } = "Monthly coach summary";

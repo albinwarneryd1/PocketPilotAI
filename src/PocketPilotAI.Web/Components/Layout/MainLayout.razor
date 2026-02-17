@@ -1,20 +1,137 @@
 @inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject UserSessionState Session
+@inject AuthApi AuthApi
+@implements IDisposable
 
-<div class="shell">
-  <aside class="sidebar">
-    <NavMenu />
-  </aside>
+<div class="app-shell @(isAuthRoute ? "auth-shell" : string.Empty)">
+  @if (ShowNavigation)
+  {
+    <aside class="app-rail">
+      <NavMenu />
+    </aside>
+  }
 
-  <main class="main-content">
-    <header class="topbar">
-      <div>
-        <h1>PocketPilotAI</h1>
-        <p>Track, plan, improve.</p>
+  <div class="app-main">
+    @if (ShowHeader)
+    {
+      <header class="app-header">
+        <a class="brand-home" href="/overview">
+          <span class="brand-mark">PP</span>
+          <span class="brand-copy">
+            <span class="brand-product">PocketPilotAI</span>
+            <strong class="brand-page">@pageTitle</strong>
+          </span>
+        </a>
+
+        <div class="header-center">
+          <span class="month-pill">@DateTime.UtcNow.ToString("MMMM yyyy")</span>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="icon-button" title="Settings" aria-label="Settings">⚙</button>
+          <button type="button" class="avatar-chip" title="@Session.DisplayName">@avatarInitials</button>
+          @if (Session.IsAuthenticated)
+          {
+            <button type="button" class="btn-secondary" @onclick="Logout">Logout</button>
+          }
+        </div>
+      </header>
+    }
+
+    <main class="app-content">
+      <div class="content-container @(isAuthRoute ? "auth-content-container" : string.Empty)">
+        @Body
       </div>
-    </header>
+    </main>
+  </div>
 
-    <section class="page-content">
-      @Body
-    </section>
-  </main>
+  @if (ShowNavigation)
+  {
+    <nav class="app-mobile-tabs" aria-label="Primary navigation">
+      <NavMenu Mobile="true" />
+    </nav>
+  }
 </div>
+
+@code {
+  private bool isAuthRoute;
+  private string pageTitle = "Overview";
+
+  private bool ShowNavigation => Session.IsAuthenticated && !isAuthRoute;
+
+  private bool ShowHeader => !isAuthRoute;
+
+  private string avatarInitials
+  {
+    get
+    {
+      if (string.IsNullOrWhiteSpace(Session.DisplayName))
+      {
+        return "PP";
+      }
+
+      string[] parts = Session.DisplayName
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+      if (parts.Length == 0)
+      {
+        return "PP";
+      }
+
+      if (parts.Length == 1)
+      {
+        return parts[0][..Math.Min(2, parts[0].Length)].ToUpperInvariant();
+      }
+
+      return string.Concat(parts[0][0], parts[1][0]).ToUpperInvariant();
+    }
+  }
+
+  protected override void OnInitialized()
+  {
+    NavigationManager.LocationChanged += OnLocationChanged;
+    Session.Changed += OnSessionChanged;
+    ComputeRouteState();
+  }
+
+  private async Task Logout()
+  {
+    await AuthApi.LogoutAsync();
+    Session.Clear();
+    NavigationManager.NavigateTo("/login");
+  }
+
+  private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+  {
+    ComputeRouteState();
+    InvokeAsync(StateHasChanged);
+  }
+
+  private void OnSessionChanged()
+    => InvokeAsync(StateHasChanged);
+
+  private void ComputeRouteState()
+  {
+    string route = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Trim('/').ToLowerInvariant();
+
+    isAuthRoute = route is "login" or "register";
+
+    pageTitle = route switch
+    {
+      "" or "overview" => "Overview",
+      "transactions" => "Transactions",
+      "add-transaction" => "Add transaction",
+      "insights" => "Insights & simulation",
+      "login" => "Sign in",
+      "register" => "Create account",
+      _ => "PocketPilotAI"
+    };
+  }
+
+  public void Dispose()
+  {
+    NavigationManager.LocationChanged -= OnLocationChanged;
+    Session.Changed -= OnSessionChanged;
+  }
+}

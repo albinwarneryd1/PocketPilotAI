@@ -1,55 +1,33 @@
 @inject UserSessionState Session
-@inject AuthApi AuthApi
-@inject NavigationManager NavigationManager
-@implements IDisposable
 
-<div class="brand">
-  <span class="brand-mark">PP</span>
-  <strong>PocketPilotAI</strong>
-</div>
-
-@if (!Session.IsAuthenticated)
-{
-  <nav class="nav-links">
-    <NavLink href="/login">Login</NavLink>
-    <NavLink href="/register">Register</NavLink>
-  </nav>
-}
-else
-{
-  <nav class="nav-links">
-    <NavLink href="/overview" Match="NavLinkMatch.All">Overview</NavLink>
-    <NavLink href="/transactions">Transactions</NavLink>
-    <NavLink href="/add-transaction">Add</NavLink>
-    <NavLink href="/insights">Insights</NavLink>
-  </nav>
-
-  <div class="session-box">
-    <span>@Session.DisplayName</span>
-    <button class="btn-ghost" @onclick="Logout">Logout</button>
-  </div>
-}
+<nav class="nav-shell @(Mobile ? "mobile" : "rail")">
+  @foreach (var item in Items)
+  {
+    <NavLink href="@item.Href" Match="@item.Match" class="nav-item" title="@item.Label">
+      <span class="nav-icon" aria-hidden="true">@item.Icon</span>
+      <span class="nav-label">@item.Label</span>
+    </NavLink>
+  }
+</nav>
 
 @code {
-  protected override void OnInitialized()
-  {
-    Session.Changed += OnSessionChanged;
-  }
+  [Parameter] public bool Mobile { get; set; }
 
-  private async Task Logout()
-  {
-    await AuthApi.LogoutAsync();
-    Session.Clear();
-    NavigationManager.NavigateTo("/login", forceLoad: true);
-  }
+  private IReadOnlyList<NavEntry> Items => Session.IsAuthenticated ? AuthenticatedItems : PublicItems;
 
-  private void OnSessionChanged()
-  {
-    InvokeAsync(StateHasChanged);
-  }
+  private static readonly IReadOnlyList<NavEntry> PublicItems =
+  [
+    new("Login", "/login", "↗", NavLinkMatch.All),
+    new("Register", "/register", "⊕", NavLinkMatch.All)
+  ];
 
-  public void Dispose()
-  {
-    Session.Changed -= OnSessionChanged;
-  }
+  private static readonly IReadOnlyList<NavEntry> AuthenticatedItems =
+  [
+    new("Overview", "/overview", "◍", NavLinkMatch.All),
+    new("Transactions", "/transactions", "≋", NavLinkMatch.Prefix),
+    new("Add", "/add-transaction", "＋", NavLinkMatch.All),
+    new("Insights", "/insights", "✦", NavLinkMatch.Prefix)
+  ];
+
+  private sealed record NavEntry(string Label, string Href, string Icon, NavLinkMatch Match);
 }

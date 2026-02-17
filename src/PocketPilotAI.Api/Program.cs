@@ -1,4 +1,6 @@
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
 using PocketPilotAI.Api.Auth;
 using PocketPilotAI.Api.Middleware;
 using PocketPilotAI.Api.OpenApi;
@@ -10,6 +12,17 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddRateLimiter(options =>
+{
+  options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+  options.AddFixedWindowLimiter("auth-login", policy =>
+  {
+    policy.PermitLimit = 8;
+    policy.Window = TimeSpan.FromMinutes(1);
+    policy.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    policy.QueueLimit = 2;
+  });
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -29,6 +42,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

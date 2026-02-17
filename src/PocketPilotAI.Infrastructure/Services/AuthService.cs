@@ -105,7 +105,18 @@ public class AuthService(AppDbContext dbContext) : IAuthService
       .Include(x => x.User)
       .FirstOrDefaultAsync(x => x.TokenHash == hash, cancellationToken);
 
-    if (current is null || current.User is null || !current.IsActive)
+    if (current is null || current.User is null)
+    {
+      return Result<AuthTokenDto>.Failure("Refresh token is invalid or expired.");
+    }
+
+    if (current.RevokedUtc is not null && !string.IsNullOrWhiteSpace(current.ReplacedByTokenHash))
+    {
+      await RevokeAllUserTokensAsync(current.UserId, cancellationToken);
+      return Result<AuthTokenDto>.Failure("Refresh token reuse detected. All sessions were revoked.");
+    }
+
+    if (!current.IsActive)
     {
       return Result<AuthTokenDto>.Failure("Refresh token is invalid or expired.");
     }
@@ -154,6 +165,12 @@ public class AuthService(AppDbContext dbContext) : IAuthService
 
   public async Task<Result> LogoutAllAsync(Guid userId, CancellationToken cancellationToken = default)
   {
+    await RevokeAllUserTokensAsync(userId, cancellationToken);
+    return Result.Success();
+  }
+
+  private async Task RevokeAllUserTokensAsync(Guid userId, CancellationToken cancellationToken)
+  {
     List<RefreshToken> tokens = await dbContext.RefreshTokens
       .Where(x => x.UserId == userId && x.RevokedUtc == null)
       .ToListAsync(cancellationToken);
@@ -164,7 +181,6 @@ public class AuthService(AppDbContext dbContext) : IAuthService
     }
 
     await dbContext.SaveChangesAsync(cancellationToken);
-    return Result.Success();
   }
 
   private static (string rawToken, RefreshToken entity) CreateRefreshToken(Guid userId, string userAgent, string ipAddress)

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PocketPilotAI.Api.Auth;
 using PocketPilotAI.Api.Mapping;
 using PocketPilotAI.Core.Application.Dtos.Users;
@@ -12,6 +13,7 @@ namespace PocketPilotAI.Api.Controllers;
 public class AuthController(IAuthService authService, IUserService userService, IJwtTokenService jwtTokenService) : ControllerBase
 {
   [HttpPost("register")]
+  [EnableRateLimiting("auth-login")]
   public async Task<IActionResult> Register([FromBody] RegisterUserRequest request, CancellationToken cancellationToken)
   {
     var result = await authService.RegisterAsync(
@@ -29,6 +31,7 @@ public class AuthController(IAuthService authService, IUserService userService, 
   }
 
   [HttpPost("login")]
+  [EnableRateLimiting("auth-login")]
   public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
   {
     var result = await authService.LoginAsync(

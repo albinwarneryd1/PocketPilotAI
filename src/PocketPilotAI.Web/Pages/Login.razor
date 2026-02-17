@@ -22,6 +22,8 @@
 </section>
 
 @code {
+  [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+
   private string email = string.Empty;
   private string password = string.Empty;
   private string? error;
@@ -55,7 +57,7 @@
       }
 
       Session.SetSession(token);
-      NavigationManager.NavigateTo("/overview", forceLoad: true);
+      NavigationManager.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/overview" : $"/{ReturnUrl}", forceLoad: true);
     }
     finally
     {

@@ -1,6 +1,4 @@
 @page "/transactions"
-@inject UserSessionState Session
-@inject NavigationManager NavigationManager
 
 <h2>Transactions</h2>
 
@@ -42,12 +40,6 @@ else
 
   protected override async Task OnInitializedAsync()
   {
-    if (!Session.IsAuthenticated)
-    {
-      NavigationManager.NavigateTo("/login", forceLoad: true);
-      return;
-    }
-
     items = await TransactionsApi.GetAsync();
   }
 }

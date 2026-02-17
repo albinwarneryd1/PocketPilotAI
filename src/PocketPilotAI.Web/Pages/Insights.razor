@@ -1,7 +1,5 @@
 @page "/insights"
 @inject InsightsApi InsightsApi
-@inject UserSessionState Session
-@inject NavigationManager NavigationManager
 
 <h2>AI Coach</h2>
 <p class="muted">Concrete, data-driven suggestions from your recent spending.</p>
@@ -124,12 +122,6 @@ else
 
   protected override async Task OnInitializedAsync()
   {
-    if (!Session.IsAuthenticated)
-    {
-      NavigationManager.NavigateTo("/login", forceLoad: true);
-      return;
-    }
-
     templates = await InsightsApi.GetWhatIfTemplatesAsync();
     if (templates.Any())
     {

@@ -7,22 +7,45 @@
     x:DataType="viewmodels:InsightsViewModel"
     Title="Insights">
 
-    <Grid Padding="20" RowDefinitions="Auto,*">
-        <Button Text="Generate AI insights" Command="{Binding RefreshCommand}" />
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="10">
+            <Button Text="Generate AI insights" Command="{Binding RefreshCommand}" />
 
-        <CollectionView Grid.Row="1" ItemsSource="{Binding Cards}" Margin="0,12,0,0">
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Border Padding="12" StrokeShape="RoundRectangle 12" Stroke="#DCE7F0" Margin="0,0,0,10">
-                        <VerticalStackLayout>
-                            <Label Text="{Binding Title}" FontAttributes="Bold" />
-                            <Label Text="{Binding Description}" FontSize="13" />
-                            <Label Text="{Binding SuggestedAction}" FontSize="13" TextColor="#0B6AA8" />
-                            <Label Text="{Binding EstimatedMonthlySavings, StringFormat='Savings: {0:0} SEK/mo'}" FontSize="12" />
-                        </VerticalStackLayout>
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-    </Grid>
+            <CollectionView ItemsSource="{Binding Cards}" HeightRequest="220">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="12" StrokeShape="RoundRectangle 12" Stroke="#DCE7F0" Margin="0,0,0,10">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                <Label Text="{Binding Description}" FontSize="13" />
+                                <Label Text="{Binding SuggestedAction}" FontSize="13" TextColor="#0B6AA8" />
+                                <Label Text="{Binding EstimatedMonthlySavings, StringFormat='Savings: {0:0} SEK/mo'}" FontSize="12" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="What-if simulation" FontAttributes="Bold" FontSize="18" />
+            <Button Text="Load scenario templates" Command="{Binding LoadTemplatesCommand}" />
+
+            <Entry Placeholder="Scenario name" Text="{Binding ScenarioName}" />
+            <Entry Placeholder="Year" Keyboard="Numeric" Text="{Binding Year}" />
+            <Entry Placeholder="Month" Keyboard="Numeric" Text="{Binding Month}" />
+            <Entry Placeholder="Action type" Text="{Binding ActionTypeInput}" />
+            <Entry Placeholder="Category" Text="{Binding CategoryName}" />
+            <Entry Placeholder="Value" Keyboard="Numeric" Text="{Binding Value}" />
+
+            <Button Text="Run what-if" Command="{Binding RunWhatIfCommand}" />
+            <Label Text="{Binding SimulationSummary}" FontSize="12" />
+
+            <CollectionView ItemsSource="{Binding Recommendations}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Label Text="• {Binding .}" FontSize="12" Margin="0,0,0,8" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

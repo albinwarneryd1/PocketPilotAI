@@ -1,10 +1,13 @@
 @inject UserSessionState Session
 
-<nav class="nav-shell @(Mobile ? "mobile" : "rail")">
+<nav class="nav-shell @(ModeClass)">
   @foreach (var item in Items)
   {
     <NavLink href="@item.Href" Match="@item.Match" class="nav-item" title="@item.Label">
-      <span class="nav-icon" aria-hidden="true">@item.Icon</span>
+      @if (Mobile)
+      {
+        <span class="nav-icon" aria-hidden="true">@item.Icon</span>
+      }
       <span class="nav-label">@item.Label</span>
     </NavLink>
   }
@@ -12,6 +15,10 @@
 
 @code {
   [Parameter] public bool Mobile { get; set; }
+
+  [Parameter] public bool Header { get; set; }
+
+  private string ModeClass => Mobile ? "mobile" : (Header ? "header" : "header");
 
   private IReadOnlyList<NavEntry> Items => Session.IsAuthenticated ? AuthenticatedItems : PublicItems;
 

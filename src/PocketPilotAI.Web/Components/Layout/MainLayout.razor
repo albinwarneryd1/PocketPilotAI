@@ -5,13 +5,6 @@
 @implements IDisposable
 
 <div class="app-shell @(isAuthRoute ? "auth-shell" : string.Empty)">
-  @if (ShowNavigation)
-  {
-    <aside class="app-rail">
-      <NavMenu />
-    </aside>
-  }
-
   <div class="app-main">
     @if (ShowHeader)
     {
@@ -24,12 +17,15 @@
           </span>
         </a>
 
-        <div class="header-center">
-          <span class="month-pill">@DateTime.UtcNow.ToString("MMMM yyyy")</span>
-        </div>
+        @if (Session.IsAuthenticated)
+        {
+          <div class="header-nav">
+            <NavMenu Header="true" />
+          </div>
+        }
 
         <div class="header-actions">
-          <button type="button" class="icon-button" title="Settings" aria-label="Settings">⚙</button>
+          <span class="month-pill">@DateTime.UtcNow.ToString("MMMM yyyy")</span>
           <button type="button" class="avatar-chip" title="@Session.DisplayName">@avatarInitials</button>
           @if (Session.IsAuthenticated)
           {

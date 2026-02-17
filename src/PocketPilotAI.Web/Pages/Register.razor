@@ -1,0 +1,70 @@
+@page "/register"
+@inject AuthApi AuthApi
+@inject UserSessionState Session
+@inject NavigationManager NavigationManager
+
+<h2>Register</h2>
+<p class="muted">Create an account to sync web and app data.</p>
+
+<section class="panel auth-panel">
+  <label>Display name</label>
+  <InputText @bind-Value="displayName" />
+
+  <label>Email</label>
+  <InputText @bind-Value="email" />
+
+  <label>Password</label>
+  <InputText @bind-Value="password" type="password" />
+
+  <button class="btn-primary" @onclick="SubmitRegister" disabled="@isBusy">@(isBusy ? "Creating..." : "Create account")</button>
+
+  @if (!string.IsNullOrWhiteSpace(error))
+  {
+    <p class="error-text">@error</p>
+  }
+</section>
+
+@code {
+  private string displayName = string.Empty;
+  private string email = string.Empty;
+  private string password = string.Empty;
+  private string? error;
+  private bool isBusy;
+
+  protected override void OnInitialized()
+  {
+    if (Session.IsAuthenticated)
+    {
+      NavigationManager.NavigateTo("/overview", forceLoad: true);
+    }
+  }
+
+  private async Task SubmitRegister()
+  {
+    isBusy = true;
+    error = null;
+
+    try
+    {
+      var token = await AuthApi.RegisterAsync(new PocketPilotAI.Core.Application.Dtos.Users.RegisterUserRequest
+      {
+        DisplayName = displayName,
+        Email = email,
+        Password = password
+      });
+
+      if (token is null)
+      {
+        error = "Could not create account.";
+        return;
+      }
+
+      Session.SetSession(token);
+      NavigationManager.NavigateTo("/overview", forceLoad: true);
+    }
+    finally
+    {
+      isBusy = false;
+    }
+  }
+}

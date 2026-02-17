@@ -1,0 +1,65 @@
+@page "/login"
+@inject AuthApi AuthApi
+@inject UserSessionState Session
+@inject NavigationManager NavigationManager
+
+<h2>Login</h2>
+<p class="muted">Use your PocketPilotAI credentials.</p>
+
+<section class="panel auth-panel">
+  <label>Email</label>
+  <InputText @bind-Value="email" />
+
+  <label>Password</label>
+  <InputText @bind-Value="password" type="password" />
+
+  <button class="btn-primary" @onclick="SubmitLogin" disabled="@isBusy">@(isBusy ? "Signing in..." : "Sign in")</button>
+
+  @if (!string.IsNullOrWhiteSpace(error))
+  {
+    <p class="error-text">@error</p>
+  }
+</section>
+
+@code {
+  private string email = string.Empty;
+  private string password = string.Empty;
+  private string? error;
+  private bool isBusy;
+
+  protected override void OnInitialized()
+  {
+    if (Session.IsAuthenticated)
+    {
+      NavigationManager.NavigateTo("/overview", forceLoad: true);
+    }
+  }
+
+  private async Task SubmitLogin()
+  {
+    isBusy = true;
+    error = null;
+
+    try
+    {
+      var token = await AuthApi.LoginAsync(new PocketPilotAI.Core.Application.Dtos.Users.LoginRequest
+      {
+        Email = email,
+        Password = password
+      });
+
+      if (token is null)
+      {
+        error = "Invalid login or unavailable API.";
+        return;
+      }
+
+      Session.SetSession(token);
+      NavigationManager.NavigateTo("/overview", forceLoad: true);
+    }
+    finally
+    {
+      isBusy = false;
+    }
+  }
+}

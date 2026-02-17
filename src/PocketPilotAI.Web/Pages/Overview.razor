@@ -1,5 +1,7 @@
 @page "/"
 @page "/overview"
+@inject UserSessionState Session
+@inject NavigationManager NavigationManager
 
 <h2>Overview</h2>
 
@@ -27,6 +29,12 @@
 
   protected override async Task OnInitializedAsync()
   {
+    if (!Session.IsAuthenticated)
+    {
+      NavigationManager.NavigateTo("/login", forceLoad: true);
+      return;
+    }
+
     var transactions = await TransactionsApi.GetAsync();
     var budgets = await BudgetsApi.GetMonthAsync(DateTime.UtcNow.Year, DateTime.UtcNow.Month);
 

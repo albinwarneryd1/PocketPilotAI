@@ -10,6 +10,8 @@ builder.Services.AddRazorComponents()
 string apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7174";
 
 builder.Services.AddHttpClient<ApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl));
+builder.Services.AddHttpClient<AuthApi>(client => client.BaseAddress = new Uri(apiBaseUrl));
+
 builder.Services.AddScoped<TransactionsApi>();
 builder.Services.AddScoped<BudgetsApi>();
 builder.Services.AddScoped<InsightsApi>();

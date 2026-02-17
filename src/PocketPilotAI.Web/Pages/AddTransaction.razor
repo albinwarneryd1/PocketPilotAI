@@ -1,6 +1,7 @@
 @page "/add-transaction"
 @inject TransactionsApi TransactionsApi
 @inject NavigationManager NavigationManager
+@inject UserSessionState Session
 
 <h2>Add Transaction</h2>
 <p class="muted">Fast entry for new spend/income events.</p>
@@ -10,6 +11,14 @@
 </section>
 
 @code {
+  protected override void OnInitialized()
+  {
+    if (!Session.IsAuthenticated)
+    {
+      NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+  }
+
   private async Task Create(CreateTransactionRequest request)
   {
     var result = await TransactionsApi.CreateAsync(request);

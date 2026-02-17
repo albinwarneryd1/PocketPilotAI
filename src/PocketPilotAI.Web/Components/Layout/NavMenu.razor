@@ -1,11 +1,55 @@
+@inject UserSessionState Session
+@inject AuthApi AuthApi
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
 <div class="brand">
   <span class="brand-mark">PP</span>
   <strong>PocketPilotAI</strong>
 </div>
 
-<nav class="nav-links">
-  <NavLink href="/overview" Match="NavLinkMatch.All">Overview</NavLink>
-  <NavLink href="/transactions">Transactions</NavLink>
-  <NavLink href="/add-transaction">Add</NavLink>
-  <NavLink href="/insights">Insights</NavLink>
-</nav>
+@if (!Session.IsAuthenticated)
+{
+  <nav class="nav-links">
+    <NavLink href="/login">Login</NavLink>
+    <NavLink href="/register">Register</NavLink>
+  </nav>
+}
+else
+{
+  <nav class="nav-links">
+    <NavLink href="/overview" Match="NavLinkMatch.All">Overview</NavLink>
+    <NavLink href="/transactions">Transactions</NavLink>
+    <NavLink href="/add-transaction">Add</NavLink>
+    <NavLink href="/insights">Insights</NavLink>
+  </nav>
+
+  <div class="session-box">
+    <span>@Session.DisplayName</span>
+    <button class="btn-ghost" @onclick="Logout">Logout</button>
+  </div>
+}
+
+@code {
+  protected override void OnInitialized()
+  {
+    Session.Changed += OnSessionChanged;
+  }
+
+  private async Task Logout()
+  {
+    await AuthApi.LogoutAsync();
+    Session.Clear();
+    NavigationManager.NavigateTo("/login", forceLoad: true);
+  }
+
+  private void OnSessionChanged()
+  {
+    InvokeAsync(StateHasChanged);
+  }
+
+  public void Dispose()
+  {
+    Session.Changed -= OnSessionChanged;
+  }
+}

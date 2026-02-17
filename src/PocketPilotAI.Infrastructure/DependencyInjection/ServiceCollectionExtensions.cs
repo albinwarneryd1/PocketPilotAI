@@ -1,0 +1,35 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PocketPilotAI.Core.Application.Interfaces;
+using PocketPilotAI.Infrastructure.Ai;
+using PocketPilotAI.Infrastructure.Persistence;
+using PocketPilotAI.Infrastructure.Services;
+
+namespace PocketPilotAI.Infrastructure.DependencyInjection;
+
+public static class ServiceCollectionExtensions
+{
+  public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+  {
+    string? connectionString = configuration.GetConnectionString("DefaultConnection")
+      ?? configuration["POCKETPILOTAI_CONNECTION"];
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+      throw new InvalidOperationException("Missing connection string. Configure ConnectionStrings:DefaultConnection or POCKETPILOTAI_CONNECTION.");
+    }
+
+    services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
+    services.AddHttpClient<OpenAiClient>();
+
+    services.AddScoped<ITransactionService, TransactionService>();
+    services.AddScoped<IBudgetService, BudgetService>();
+    services.AddScoped<IImportService, ImportService>();
+    services.AddScoped<IAiInsightsService, AiInsightsService>();
+    services.AddScoped<IUserService, UserService>();
+
+    return services;
+  }
+}

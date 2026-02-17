@@ -169,14 +169,6 @@ dotnet test tests/PocketPilotAI.ApiTests/PocketPilotAI.ApiTests.csproj -c Releas
 - Export/reporting support
 - Open Banking integrations
 
-##  Screenshot Assets
-
-Place screenshots in:
-
-- `assets/screenshots/hero-overview.png`
-- `assets/screenshots/overview.png`
-- `assets/screenshots/transactions.png`
-- `assets/screenshots/add-transaction.png`
 
 ## License
 

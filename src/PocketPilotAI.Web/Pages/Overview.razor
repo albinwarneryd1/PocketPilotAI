@@ -1,0 +1,52 @@
+@page "/"
+@page "/overview"
+
+<h2>Overview</h2>
+
+<div class="kpi-grid">
+  <KpiCard Label="Income" Value="@($"{income:0} SEK")" Hint="Current month" />
+  <KpiCard Label="Expenses" Value="@($"{expenses:0} SEK")" Hint="Current month" />
+  <KpiCard Label="Budget Left" Value="@($"{remainingBudget:0} SEK")" Hint="Planned - spent" />
+  <KpiCard Label="Top Merchant" Value="@topMerchant" Hint="Most transactions" />
+</div>
+
+<section class="panel">
+  <h3>Category spend</h3>
+  <CategoryBarChart Items="categoryChart" />
+</section>
+
+@code {
+  [Inject] private TransactionsApi TransactionsApi { get; set; } = default!;
+  [Inject] private BudgetsApi BudgetsApi { get; set; } = default!;
+
+  private decimal income;
+  private decimal expenses;
+  private decimal remainingBudget;
+  private string topMerchant = "-";
+  private IReadOnlyList<CategoryBarChart.CategoryChartItem> categoryChart = [];
+
+  protected override async Task OnInitializedAsync()
+  {
+    var transactions = await TransactionsApi.GetAsync();
+    var budgets = await BudgetsApi.GetMonthAsync(DateTime.UtcNow.Year, DateTime.UtcNow.Month);
+
+    income = transactions.Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Income).Sum(x => x.Amount);
+    expenses = transactions.Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense).Sum(x => x.Amount);
+    remainingBudget = budgets.Sum(x => x.RemainingAmount);
+
+    topMerchant = transactions
+      .Where(x => !string.IsNullOrWhiteSpace(x.MerchantName))
+      .GroupBy(x => x.MerchantName)
+      .OrderByDescending(x => x.Count())
+      .Select(x => x.Key)
+      .FirstOrDefault() ?? "-";
+
+    categoryChart = transactions
+      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
+      .GroupBy(x => string.IsNullOrWhiteSpace(x.CategoryName) ? "Uncategorized" : x.CategoryName)
+      .Select(g => new CategoryBarChart.CategoryChartItem(g.Key, g.Sum(x => x.Amount)))
+      .OrderByDescending(x => x.Amount)
+      .Take(6)
+      .ToList();
+  }
+}

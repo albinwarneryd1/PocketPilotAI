@@ -1,0 +1,28 @@
+@if (!Items.Any())
+{
+  <p class="muted">No category data yet.</p>
+}
+else
+{
+  <div class="bars">
+    @foreach (var item in Items.OrderByDescending(x => x.Amount).Take(6))
+    {
+      decimal max = Items.Max(x => x.Amount);
+      decimal width = max <= 0 ? 0 : (item.Amount / max) * 100m;
+
+      <div class="bar-row">
+        <span>@item.Label</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: @($"{width:0}%")"></div>
+        </div>
+        <strong>@item.Amount.ToString("0")</strong>
+      </div>
+    }
+  </div>
+}
+
+@code {
+  [Parameter] public IReadOnlyList<CategoryChartItem> Items { get; set; } = [];
+
+  public record CategoryChartItem(string Label, decimal Amount);
+}

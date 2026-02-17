@@ -1,0 +1,13 @@
+<article class="kpi-card">
+  <span>@Label</span>
+  <strong>@Value</strong>
+  <small>@Hint</small>
+</article>
+
+@code {
+  [Parameter] public string Label { get; set; } = string.Empty;
+
+  [Parameter] public string Value { get; set; } = string.Empty;
+
+  [Parameter] public string Hint { get; set; } = string.Empty;
+}

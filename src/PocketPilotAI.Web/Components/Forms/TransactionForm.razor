@@ -1,0 +1,86 @@
+<EditForm Model="model" OnValidSubmit="HandleSubmit">
+  <DataAnnotationsValidator />
+
+  <div class="form-grid">
+    <label>
+      Account Id
+      <InputText @bind-Value="model.AccountId" />
+    </label>
+
+    <label>
+      Merchant
+      <InputText @bind-Value="model.MerchantName" />
+    </label>
+
+    <label>
+      Amount
+      <InputNumber @bind-Value="model.Amount" />
+    </label>
+
+    <label>
+      Currency
+      <InputText @bind-Value="model.Currency" />
+    </label>
+
+    <label>
+      Date (UTC)
+      <InputDate @bind-Value="model.DateUtc" />
+    </label>
+
+    <label>
+      Notes
+      <InputText @bind-Value="model.Notes" />
+    </label>
+  </div>
+
+  <button class="btn-primary" type="submit">Save transaction</button>
+
+  @if (!string.IsNullOrWhiteSpace(Error))
+  {
+    <p class="error-text">@Error</p>
+  }
+</EditForm>
+
+@code {
+  [Parameter] public EventCallback<CreateTransactionRequest> OnSubmit { get; set; }
+
+  private TransactionFormModel model = new();
+
+  private string? Error { get; set; }
+
+  private async Task HandleSubmit()
+  {
+    if (!Guid.TryParse(model.AccountId, out Guid accountId))
+    {
+      Error = "Account Id must be a valid GUID.";
+      return;
+    }
+
+    Error = null;
+
+    await OnSubmit.InvokeAsync(new CreateTransactionRequest
+    {
+      AccountId = accountId,
+      MerchantName = model.MerchantName,
+      Amount = model.Amount,
+      Currency = model.Currency,
+      DateUtc = DateTime.SpecifyKind(model.DateUtc, DateTimeKind.Utc),
+      Notes = model.Notes
+    });
+  }
+
+  private sealed class TransactionFormModel
+  {
+    public string AccountId { get; set; } = string.Empty;
+
+    public string MerchantName { get; set; } = string.Empty;
+
+    public decimal Amount { get; set; }
+
+    public string Currency { get; set; } = "SEK";
+
+    public DateTime DateUtc { get; set; } = DateTime.UtcNow.Date;
+
+    public string Notes { get; set; } = string.Empty;
+  }
+}

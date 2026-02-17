@@ -1,0 +1,40 @@
+@page "/insights"
+@inject InsightsApi InsightsApi
+
+<h2>AI Coach</h2>
+<p class="muted">Concrete, data-driven suggestions from your recent spending.</p>
+
+<button class="btn-primary" @onclick="LoadInsights">Generate Leak Insights</button>
+
+@if (!cards.Any())
+{
+  <p class="muted">No insights loaded yet.</p>
+}
+else
+{
+  <div class="insight-grid">
+    @foreach (var card in cards)
+    {
+      <article class="insight-card">
+        <h3>@card.Title</h3>
+        <p>@card.Description</p>
+        <p><strong>Action:</strong> @card.SuggestedAction</p>
+        <p><strong>Estimated savings:</strong> @card.EstimatedMonthlySavings.ToString("0") SEK/month</p>
+      </article>
+    }
+  </div>
+}
+
+@code {
+  private IReadOnlyList<InsightCardDto> cards = [];
+
+  private async Task LoadInsights()
+  {
+    cards = await InsightsApi.GetLeakInsightsAsync(new LeakFinderRequest
+    {
+      FromUtc = DateTime.UtcNow.AddMonths(-1),
+      ToUtc = DateTime.UtcNow,
+      MaxSuggestions = 3
+    });
+  }
+}

@@ -1,27 +1,34 @@
 using PocketPilotAI.Web.Components;
+using PocketPilotAI.Web.Services;
+using PocketPilotAI.Web.State;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+  .AddInteractiveServerComponents();
 
-var app = builder.Build();
+string apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7174";
 
-// Configure the HTTP request pipeline.
+builder.Services.AddHttpClient<ApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl));
+builder.Services.AddScoped<TransactionsApi>();
+builder.Services.AddScoped<BudgetsApi>();
+builder.Services.AddScoped<InsightsApi>();
+builder.Services.AddScoped<UserSessionState>();
+builder.Services.AddScoped<UiState>();
+
+WebApplication app = builder.Build();
+
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+  app.UseExceptionHandler("/not-found", createScopeForErrors: true);
+  app.UseHsts();
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
 
+app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+  .AddInteractiveServerRenderMode();
 
 app.Run();

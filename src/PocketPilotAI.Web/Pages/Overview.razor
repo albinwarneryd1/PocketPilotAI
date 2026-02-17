@@ -1,13 +1,12 @@
 @page "/"
 @page "/overview"
-@inject UserSessionState Session
 
 <div class="page-stack decision-flow">
   <section class="page-head">
     <div class="page-head-copy">
       <p class="page-kicker">Overview</p>
-      <h2 class="page-title">Your monthly status</h2>
-      <p class="muted">One outcome, one recommendation, one next step.</p>
+      <h2 class="page-title">Your money this month</h2>
+      <p class="muted">See your status, understand the shift, and take one next action.</p>
     </div>
 
     <select class="month-selector" value="@selectedMonthKey" @onchange="OnMonthChanged" aria-label="Month selector">
@@ -18,72 +17,72 @@
     </select>
   </section>
 
-  <HeroCard AdditionalClass="decision-hero card-rise">
-    <p class="decision-kicker">Current status</p>
-    <h3 class="decision-value">@healthScore / 100</h3>
-    <p class="decision-subtitle">@healthSummary</p>
+  <SceneHero
+    Label="Current status"
+    TargetNumber="@healthScore"
+    NumberSuffix=" / 100"
+    Subtitle="@healthSummary"
+    ActionHint="@($"Net this month: {netOutcomeText}")"
+    PrimaryActionLabel="Open what-if"
+    PrimaryActionHref="/insights"
+    SecondaryActionLabel="Details"
+    SecondaryActionHref="#overview-details"
+    GaugeValue="healthScore"
+    SparklinePoints="trendSparkline" />
 
-    <div class="action-row">
-      <a class="btn-primary" href="/insights">Open what-if</a>
-      <a class="btn-secondary" href="#overview-details">See details</a>
-    </div>
+  <InlineCard AdditionalClass="scene-inline card-rise">
+    <h3>Your AI summary</h3>
 
-    @if (actionChips.Any())
+    @if (isLoadingNarrative)
     {
-      <div class="outcome-chip-row">
-        @foreach (var chip in actionChips)
-        {
-          <span class="outcome-chip">@chip</span>
-        }
+      <div class="skeleton-stack" aria-hidden="true">
+        <span class="skeleton-line full"></span>
+        <span class="skeleton-line medium"></span>
       </div>
-    }
-  </HeroCard>
-
-  <AIExplanationBlock
-    Title="Monthly narrative"
-    Body="@monthlyNarrative"
-    IsLoading="@isLoadingNarrative" />
-
-  <RecommendationCard
-    Title="Next best move"
-    Description="@primaryRecommendation"
-    ImpactText="@($"This could save about {estimatedImpact:0} SEK/month")"
-    CtaLabel="Start a plan"
-    CtaHref="/insights" />
-
-  <section class="panel">
-    <div class="section-header-copy">
-      <h3 class="section-title">Spending trend</h3>
-      <p class="muted">Single chart to show your pace over time.</p>
-    </div>
-
-    @if (!trendItems.Any())
-    {
-      <p class="muted">Not enough historical data for trend analysis.</p>
+      <p class="muted">Generating your monthly insights...</p>
     }
     else
     {
-      <div class="bars">
-        @foreach (var item in trendItems)
-        {
-          decimal width = trendMax <= 0 ? 0 : (item.Amount / trendMax) * 100m;
-          <div class="bar-row card-rise">
-            <span>@item.Label</span>
-            <div class="bar-track"><div class="bar-fill" style="width:@($"{width:0}%")"></div></div>
-            <strong>@item.Amount.ToString("0") SEK</strong>
-          </div>
-        }
-      </div>
+      <p class="scene-inline-main">@monthlyNarrative</p>
     }
-  </section>
+
+    <p class="scene-inline-action"><strong>Next action:</strong> @primaryRecommendation</p>
+    <a class="btn-primary" href="/insights">Start a plan</a>
+  </InlineCard>
 
   <details class="decision-details" id="overview-details">
-    <summary>Supporting details</summary>
+    <summary>Show supporting details</summary>
     <div class="decision-details-body">
       <section class="panel">
         <div class="section-header-copy">
+          <h3 class="section-title">Trend view</h3>
+          <p class="muted">One visual support chart for pace over time.</p>
+        </div>
+
+        @if (!trendItems.Any())
+        {
+          <p class="muted">Not enough historical data for trend analysis.</p>
+        }
+        else
+        {
+          <div class="bars">
+            @foreach (var item in trendItems)
+            {
+              decimal width = trendMax <= 0 ? 0 : (item.Amount / trendMax) * 100m;
+              <div class="bar-row card-rise">
+                <span>@item.Label</span>
+                <div class="bar-track"><div class="bar-fill" style="width:@($"{width:0}%")"></div></div>
+                <strong>@item.Amount.ToString("0") SEK</strong>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="panel">
+        <div class="section-header-copy">
           <h3 class="section-title">Leak opportunities</h3>
-          <p class="muted">Detailed insights you can apply this month.</p>
+          <p class="muted">Detailed actions you can take this month.</p>
         </div>
 
         @if (!leakCards.Any())
@@ -93,29 +92,12 @@
         else
         {
           <div class="insight-grid">
-            @foreach (var card in leakCards.Take(4))
+            @foreach (var card in leakCards.Take(3))
             {
               <InsightCard Item="card" ActionLabel="Review" ActionHref="/transactions" />
             }
           </div>
         }
-      </section>
-
-      <section class="panel">
-        <div class="kpi-grid">
-          <BaseCard>
-            <p class="metric-eyebrow">Income</p>
-            <strong>@income.ToString("0") SEK</strong>
-          </BaseCard>
-          <BaseCard>
-            <p class="metric-eyebrow">Expenses</p>
-            <strong>@expenses.ToString("0") SEK</strong>
-          </BaseCard>
-          <BaseCard>
-            <p class="metric-eyebrow">Remaining budget</p>
-            <strong>@remainingBudget.ToString("0") SEK</strong>
-          </BaseCard>
-        </div>
       </section>
     </div>
   </details>
@@ -130,6 +112,7 @@
   private IReadOnlyList<InsightCardDto> leakCards = [];
   private IReadOnlyList<TrendItem> trendItems = [];
   private IReadOnlyList<MonthOption> monthOptions = [];
+  private IReadOnlyList<decimal> trendSparkline = [];
 
   private string selectedMonthKey = string.Empty;
   private string monthlyNarrative = string.Empty;
@@ -140,12 +123,11 @@
   private decimal remainingBudget;
   private decimal recurringShare;
   private decimal trendMax;
-  private decimal estimatedImpact;
 
   private int healthScore;
   private string healthSummary = "Score pending";
   private string primaryRecommendation = "Open what-if and apply one scenario this month.";
-  private IReadOnlyList<string> actionChips = [];
+  private string netOutcomeText = "No net calculation yet";
 
   protected override async Task OnInitializedAsync()
   {
@@ -200,22 +182,21 @@
     healthScore = BuildHealthScore(income, expenses, remainingBudget, recurringShare);
     healthSummary = BuildHealthSummary(healthScore, income, expenses);
 
+    decimal net = income - expenses;
+    netOutcomeText = net >= 0
+      ? $"You are up {net:0} SEK"
+      : $"You are down {Math.Abs(net):0} SEK";
+
     trendItems = BuildTrend(allTransactions, periodStart);
+    trendSparkline = trendItems.Select(x => x.Amount <= 0 ? 1m : x.Amount).ToList();
     trendMax = trendItems.Any() ? trendItems.Max(x => x.Amount) : 0;
 
     leakCards = await InsightsApi.GetLeakInsightsAsync(new LeakFinderRequest
     {
       FromUtc = periodStart,
       ToUtc = periodEnd,
-      MaxSuggestions = 4
+      MaxSuggestions = 3
     });
-
-    estimatedImpact = leakCards.Sum(x => x.EstimatedMonthlySavings);
-
-    actionChips = leakCards
-      .Take(3)
-      .Select(x => x.SuggestedAction)
-      .ToList();
 
     isLoadingNarrative = true;
 
@@ -232,8 +213,8 @@
     }
     else
     {
-      monthlyNarrative = "You are ready to improve one category this month. Run a quick what-if to estimate the impact before acting.";
-      primaryRecommendation = "Reduce one high-growth category by 10-15% for the next 30 days.";
+      monthlyNarrative = "You can improve your month by adjusting one high-growth category.";
+      primaryRecommendation = "Reduce one high-growth category by 10-15% and follow up weekly.";
     }
 
     isLoadingNarrative = false;
@@ -255,16 +236,13 @@
   {
     if (income <= 0)
     {
-      return "No income registered for this month yet. Add income to unlock an accurate health score.";
+      return "No income registered yet. Add income to get a reliable health score.";
     }
 
     decimal net = income - expenses;
-    if (net >= 0)
-    {
-      return $"You are currently positive by {net:0} SEK this month.";
-    }
-
-    return $"You are currently overspending by {Math.Abs(net):0} SEK this month.";
+    return net >= 0
+      ? $"You are in control this month with a positive net of {net:0} SEK."
+      : $"You are overspending this month by {Math.Abs(net):0} SEK.";
   }
 
   private static IReadOnlyList<TrendItem> BuildTrend(IReadOnlyList<TransactionDto> transactions, DateTime anchorMonth)
@@ -309,9 +287,9 @@
     => string.IsNullOrWhiteSpace(narrative)
       ? "No AI narrative available yet."
       : narrative
-        .Replace("KPI", "key metric")
-        .Replace("baseline", "last month")
-        .Replace("simulated", "improved");
+        .Replace("Scenario shifts", "You can change")
+        .Replace("net cash flow", "your monthly net")
+        .Replace("KPI", "key metric");
 
   private static string RewriteRecommendation(string recommendation)
     => string.IsNullOrWhiteSpace(recommendation)

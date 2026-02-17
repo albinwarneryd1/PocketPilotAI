@@ -5,49 +5,50 @@
 <div class="page-stack decision-flow">
   <section class="page-head">
     <div class="page-head-copy">
-      <p class="page-kicker">AI coach</p>
-      <h2 class="page-title">Decision assistant</h2>
-      <p class="muted">Understand the impact first, then act.</p>
+      <p class="page-kicker">Insights</p>
+      <h2 class="page-title">What-if result</h2>
+      <p class="muted">Understand impact in seconds, then act.</p>
     </div>
   </section>
 
-  <HeroCard AdditionalClass="decision-hero card-rise">
-    <p class="decision-kicker">Hero outcome</p>
-    <h3 class="decision-value">@heroOutcomeValue</h3>
-    <p class="decision-subtitle">@heroOutcomeSubtitle</p>
+  <SceneHero
+    Label="Impact outcome"
+    TargetNumber="heroDeltaNumber"
+    NumberSuffix=" SEK / month"
+    IncludePlusForPositive="true"
+    Subtitle="@heroOutcomeSubtitle"
+    ActionHint="@($"If you apply this scenario")"
+    PrimaryActionLabel="Apply scenario"
+    PrimaryActionHref="/transactions"
+    SecondaryActionLabel="Adjust scenario"
+    SecondaryActionHref="#scenario-details"
+    GaugeValue="impactScore"
+    SparklinePoints="simulationSparkline" />
 
-    <div class="action-row">
-      <a class="btn-primary" href="/transactions">Apply scenario</a>
-      <a class="btn-secondary" href="#scenario-details">Adjust scenario</a>
-    </div>
+  <InlineCard AdditionalClass="scene-inline card-rise">
+    <h3>Why this matters</h3>
 
-    @if (outcomeChips.Any())
+    @if (isLoadingNarrative)
     {
-      <div class="outcome-chip-row">
-        @foreach (var chip in outcomeChips)
-        {
-          <span class="outcome-chip">@chip</span>
-        }
+      <div class="skeleton-stack" aria-hidden="true">
+        <span class="skeleton-line full"></span>
+        <span class="skeleton-line medium"></span>
       </div>
+      <p class="muted">Generating your monthly insights...</p>
     }
-  </HeroCard>
+    else
+    {
+      <p class="scene-inline-main">@humanExplanation</p>
+    }
 
-  <AIExplanationBlock
-    Title="Why this matters"
-    Body="@humanExplanation"
-    IsLoading="@isLoadingNarrative" />
-
-  <RecommendationCard
-    Title="Next best move"
-    Description="@topRecommendation"
-    ImpactText="@impactText"
-    CtaLabel="Apply this plan"
-    CtaHref="/transactions" />
+    <p class="scene-inline-action"><strong>Next move:</strong> @topRecommendation</p>
+    <a class="btn-primary" href="/transactions">Apply this plan</a>
+  </InlineCard>
 
   <section class="panel">
     <div class="section-header-copy">
       <h3 class="section-title">Before vs after</h3>
-      <p class="muted">One chart focused on outcome, not noise.</p>
+      <p class="muted">One visualization focused on your decision impact.</p>
     </div>
 
     @if (simulation is null)
@@ -68,12 +69,14 @@
               <span class="before-after-label">@row.Label</span>
               <strong>@FormatMetric(row.After, row.IsPercent)</strong>
             </div>
+
             <div class="compare-bar baseline">
               <div style="width:@BarWidth(row.Before, max)"></div>
             </div>
             <div class="compare-bar simulated">
               <div style="width:@BarWidth(row.After, max)"></div>
             </div>
+
             <small class="muted">Before @FormatMetric(row.Before, row.IsPercent) -> After @FormatMetric(row.After, row.IsPercent)</small>
           </div>
         }
@@ -82,12 +85,12 @@
   </section>
 
   <details class="decision-details" id="scenario-details">
-    <summary>Scenario setup and detailed metrics</summary>
+    <summary>Show scenario controls and detailed metrics</summary>
     <div class="decision-details-body">
       <section class="panel">
         <div class="section-header-copy">
           <h3 class="section-title">Scenario controls</h3>
-          <p class="muted">Change one variable, rerun, compare.</p>
+          <p class="muted">Adjust one variable and rerun.</p>
         </div>
 
         @if (templates.Any())
@@ -143,26 +146,21 @@
       @if (simulation is not null)
       {
         <section class="panel">
-          <div class="section-header-copy">
-            <h3 class="section-title">Detailed numbers</h3>
-            <p class="muted">Expanded metrics for deeper review.</p>
-          </div>
-
           <div class="kpi-grid">
             <BaseCard>
-              <p class="metric-eyebrow">Before</p>
+              <p class="scene-label">Before</p>
               <p>Income <strong>@simulation.Baseline.Income.ToString("0") SEK</strong></p>
               <p>Expenses <strong>@simulation.Baseline.Expenses.ToString("0") SEK</strong></p>
               <p>Net <strong>@simulation.Baseline.Net.ToString("0") SEK</strong></p>
             </BaseCard>
             <BaseCard>
-              <p class="metric-eyebrow">After</p>
+              <p class="scene-label">After</p>
               <p>Income <strong>@simulation.Simulated.Income.ToString("0") SEK</strong></p>
               <p>Expenses <strong>@simulation.Simulated.Expenses.ToString("0") SEK</strong></p>
               <p>Net <strong>@simulation.Simulated.Net.ToString("0") SEK</strong></p>
             </BaseCard>
             <BaseCard>
-              <p class="metric-eyebrow">Delta</p>
+              <p class="scene-label">Delta</p>
               <p>Income <strong>@simulation.Delta.IncomeDelta.ToString("0") SEK</strong></p>
               <p>Expenses <strong>@simulation.Delta.ExpenseDelta.ToString("0") SEK</strong></p>
               <p>Net <strong>@simulation.Delta.NetDelta.ToString("0") SEK</strong></p>
@@ -176,9 +174,7 @@
         <section class="panel">
           <div class="section-header-copy">
             <h3 class="section-title">Supporting insights</h3>
-            <p class="muted">Useful context if you want to go deeper.</p>
           </div>
-
           <div class="insight-grid">
             @foreach (var card in supportingInsights)
             {
@@ -213,13 +209,13 @@
   private bool isLoadingNarrative = true;
   private string lastUpdatedLabel = "Not simulated";
 
-  private string heroOutcomeValue = "Calculating...";
-  private string heroOutcomeSubtitle = "Run your scenario to see your potential impact.";
+  private decimal heroDeltaNumber;
+  private string heroOutcomeSubtitle = "Run your scenario to see potential impact.";
   private string humanExplanation = "Generating your monthly insights...";
   private string topRecommendation = "Run one simulation and apply the best outcome.";
-  private string impactText = "No impact estimate yet.";
+  private int impactScore;
 
-  private IReadOnlyList<string> outcomeChips = [];
+  private IReadOnlyList<decimal> simulationSparkline = [20m, 24m, 26m, 30m, 34m, 38m];
   private IReadOnlyList<OutcomeRow> outcomeRows = [];
 
   private CancellationTokenSource? debounceCts;
@@ -330,7 +326,7 @@
     });
 
     primaryInsight = allInsights.FirstOrDefault();
-    supportingInsights = allInsights.Skip(1).Take(3).ToList();
+    supportingInsights = allInsights.Skip(1).Take(2).ToList();
 
     await BuildNarrativeAsync();
     await RunSimulation();
@@ -388,11 +384,10 @@
 
       if (simulation is null)
       {
-        heroOutcomeValue = "No simulation result";
-        heroOutcomeSubtitle = "Try adjusting the scenario and run again.";
-        impactText = "No impact estimate available.";
+        heroDeltaNumber = 0;
+        heroOutcomeSubtitle = "Try adjusting your scenario and run again.";
         outcomeRows = [];
-        outcomeChips = [];
+        impactScore = 0;
         lastUpdatedLabel = "Simulation failed";
         return;
       }
@@ -409,39 +404,39 @@
 
   private void BuildHeroStory(WhatIfSimulationResultDto result)
   {
-    decimal delta = result.Delta.NetDelta;
+    heroDeltaNumber = result.Delta.NetDelta;
 
-    heroOutcomeValue = delta >= 0
-      ? $"+{delta:0} SEK / month potential"
-      : $"{delta:0} SEK / month impact";
+    heroOutcomeSubtitle = result.Delta.NetDelta >= 0
+      ? $"You could save about {result.Delta.NetDelta:0} SEK/month if you apply this scenario."
+      : $"This scenario would reduce your monthly net by {Math.Abs(result.Delta.NetDelta):0} SEK.";
 
-    heroOutcomeSubtitle = delta >= 0
-      ? $"You could save about {delta:0} SEK each month if you apply this scenario."
-      : $"This scenario may reduce your net by {Math.Abs(delta):0} SEK each month.";
+    impactScore = BuildImpactScore(result.Delta.NetDelta, result.Delta.SavingsRateDeltaPercent);
 
-    impactText = delta >= 0
-      ? $"Expected gain: {delta:0} SEK/month"
-      : $"Expected loss: {Math.Abs(delta):0} SEK/month";
-
-    outcomeChips =
+    simulationSparkline =
     [
-      $"Savings rate change {result.Delta.SavingsRateDeltaPercent:0.0}%",
-      $"Category focus: {categoryName}",
-      $"Action: {ToDisplay(selectedType)}"
+      result.Baseline.Net,
+      result.Simulated.Net,
+      result.Baseline.SavingsRatePercent,
+      result.Simulated.SavingsRatePercent,
+      result.Delta.NetDelta,
+      result.Delta.SavingsRateDeltaPercent
     ];
 
-    string simulatedNarrative = delta >= 0
-      ? $"You improve your net by {delta:0} SEK."
-      : $"You reduce your net by {Math.Abs(delta):0} SEK.";
+    if (result.Recommendations.Any())
+    {
+      topRecommendation = result.Recommendations[0];
+    }
 
-    humanExplanation = $"{simulatedNarrative} {RewriteToHumanTone(topRecommendation)}";
+    humanExplanation = result.Delta.NetDelta >= 0
+      ? $"You could save ~{result.Delta.NetDelta:0} SEK/month by reducing {categoryName} by {actionValue:0.#}."
+      : $"This scenario increases pressure by ~{Math.Abs(result.Delta.NetDelta):0} SEK/month. Try a smaller cut in {categoryName}.";
   }
 
   private void BuildOutcomeRows(WhatIfSimulationResultDto result)
   {
     outcomeRows =
     [
-      new("Net cash flow", result.Baseline.Net, result.Simulated.Net),
+      new("Net", result.Baseline.Net, result.Simulated.Net),
       new("Savings rate", result.Baseline.SavingsRatePercent, result.Simulated.SavingsRatePercent, true)
     ];
   }
@@ -466,7 +461,7 @@
     }
     catch (TaskCanceledException)
     {
-      // ignore fast input churn
+      // ignore rapid input churn
     }
   }
 
@@ -504,6 +499,15 @@
       WhatIfActionType.RemoveDetectedSubscriptions => "Remove subscriptions",
       _ => type.ToString()
     };
+
+  private static int BuildImpactScore(decimal netDelta, decimal savingsRateDelta)
+  {
+    decimal score = 50m;
+    score += Math.Clamp(netDelta / 100m, -25m, 35m);
+    score += Math.Clamp(savingsRateDelta * 2m, -20m, 25m);
+
+    return (int)Math.Clamp(Math.Round(score), 0, 100);
+  }
 
   private static string BarWidth(decimal value, decimal max)
   {

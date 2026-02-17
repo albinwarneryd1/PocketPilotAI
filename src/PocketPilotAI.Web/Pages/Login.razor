@@ -33,7 +33,7 @@
   {
     if (Session.IsAuthenticated)
     {
-      NavigationManager.NavigateTo("/overview", forceLoad: true);
+      NavigationManager.NavigateTo("/overview");
     }
   }
 
@@ -57,7 +57,15 @@
       }
 
       Session.SetSession(token);
-      NavigationManager.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/overview" : $"/{ReturnUrl}", forceLoad: true);
+      string target = string.IsNullOrWhiteSpace(ReturnUrl)
+        ? "/overview"
+        : (ReturnUrl.StartsWith("/") ? ReturnUrl : $"/{ReturnUrl}");
+
+      NavigationManager.NavigateTo(target);
+    }
+    catch (Exception)
+    {
+      error = "Login failed. Check that the API is running and try again.";
     }
     finally
     {

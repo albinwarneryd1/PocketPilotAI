@@ -36,11 +36,6 @@ PocketPilotAI helps users:
   <img src="assets/screenshots/overview.png" width="850" alt="Overview screen"/>
 </p>
 
-### Insights & Simulation
-<p align="center">
-  <img src="assets/screenshots/insights.png" width="850" alt="Insights and simulation screen"/>
-</p>
-
 ### Transactions
 <p align="center">
   <img src="assets/screenshots/transactions.png" width="850" alt="Transactions screen"/>
@@ -183,7 +178,6 @@ Place screenshots in:
 
 - `assets/screenshots/hero-overview.png`
 - `assets/screenshots/overview.png`
-- `assets/screenshots/insights.png`
 - `assets/screenshots/transactions.png`
 - `assets/screenshots/add-transaction.png`
 

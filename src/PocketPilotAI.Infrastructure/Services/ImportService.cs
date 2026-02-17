@@ -213,6 +213,7 @@ public class ImportService(AppDbContext dbContext, ITransactionService transacti
         break;
       }
     }
+
     if (index < 0 || index >= values.Count)
     {
       return false;

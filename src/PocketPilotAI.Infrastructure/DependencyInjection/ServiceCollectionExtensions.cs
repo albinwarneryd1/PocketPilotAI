@@ -29,6 +29,8 @@ public static class ServiceCollectionExtensions
     services.AddScoped<IImportService, ImportService>();
     services.AddScoped<IAiInsightsService, AiInsightsService>();
     services.AddScoped<IUserService, UserService>();
+    services.AddScoped<IAuthService, AuthService>();
+    services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
 
     return services;
   }

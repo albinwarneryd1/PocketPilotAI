@@ -19,6 +19,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
   public DbSet<RecurringPayment> RecurringPayments => Set<RecurringPayment>();
 
+  public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     base.OnModelCreating(modelBuilder);
@@ -31,7 +33,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
       entity.HasIndex(x => x.Email).IsUnique();
       entity.Property(x => x.Email).HasMaxLength(320).IsRequired();
       entity.Property(x => x.DisplayName).HasMaxLength(120).IsRequired();
-      entity.Property(x => x.PasswordHash).HasMaxLength(512).IsRequired();
+      entity.Property(x => x.PasswordHash).HasMaxLength(1024).IsRequired();
+      entity.Property(x => x.PasswordSalt).HasMaxLength(256).IsRequired();
+      entity.Property(x => x.PasswordIterations).IsRequired();
     });
 
     modelBuilder.Entity<Account>(entity =>
@@ -82,6 +86,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         .WithMany(x => x.RecurringPayments)
         .HasForeignKey(x => x.MerchantId)
         .OnDelete(DeleteBehavior.SetNull);
+    });
+
+    modelBuilder.Entity<RefreshToken>(entity =>
+    {
+      entity.HasKey(x => x.Id);
+      entity.Property(x => x.TokenHash).HasMaxLength(256).IsRequired();
+      entity.Property(x => x.UserAgent).HasMaxLength(512);
+      entity.Property(x => x.IpAddress).HasMaxLength(128);
+      entity.Property(x => x.ReplacedByTokenHash).HasMaxLength(256);
+      entity.HasIndex(x => x.TokenHash).IsUnique();
+      entity.HasOne(x => x.User)
+        .WithMany(x => x.RefreshTokens)
+        .HasForeignKey(x => x.UserId)
+        .OnDelete(DeleteBehavior.Cascade);
     });
   }
 }

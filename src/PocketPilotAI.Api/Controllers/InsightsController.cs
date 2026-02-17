@@ -33,7 +33,18 @@ public class InsightsController(IAiInsightsService insightsService) : Controller
       : Ok(result.Value);
   }
 
-  [HttpPost("what-if")]
+  [HttpGet("what-if/templates")]
+  public async Task<IActionResult> WhatIfTemplates(CancellationToken cancellationToken)
+  {
+    Guid userId = User.GetRequiredUserId();
+    var result = await insightsService.GetWhatIfTemplatesAsync(userId, cancellationToken);
+
+    return result.IsFailure || result.Value is null
+      ? BadRequest(new { error = result.Error })
+      : Ok(result.Value);
+  }
+
+  [HttpPost("what-if/simulate")]
   public async Task<IActionResult> WhatIf([FromBody] WhatIfSimulationRequest request, CancellationToken cancellationToken)
   {
     Guid userId = User.GetRequiredUserId();

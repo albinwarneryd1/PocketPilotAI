@@ -21,20 +21,23 @@ public static class MauiProgram
 
     string baseUrl = Environment.GetEnvironmentVariable("POCKETPILOTAI_API_BASE_URL") ?? "https://localhost:7174";
     builder.Services.AddHttpClient<ApiClient>(client => client.BaseAddress = new Uri(baseUrl));
+    builder.Services.AddHttpClient<AuthApi>(client => client.BaseAddress = new Uri(baseUrl));
 
     builder.Services.AddSingleton<UserSessionService>();
     builder.Services.AddSingleton<OfflineCacheService>();
 
+    builder.Services.AddTransient<LoginViewModel>();
     builder.Services.AddTransient<OverviewViewModel>();
     builder.Services.AddTransient<TransactionsViewModel>();
     builder.Services.AddTransient<AddTransactionViewModel>();
     builder.Services.AddTransient<InsightsViewModel>();
 
+    builder.Services.AddSingleton<AppShell>();
+    builder.Services.AddTransient<LoginPage>();
     builder.Services.AddTransient<OverviewPage>();
     builder.Services.AddTransient<TransactionsPage>();
     builder.Services.AddTransient<AddTransactionPage>();
     builder.Services.AddTransient<InsightsPage>();
-    builder.Services.AddTransient<AppShell>();
 
 #if DEBUG
     builder.Logging.AddDebug();

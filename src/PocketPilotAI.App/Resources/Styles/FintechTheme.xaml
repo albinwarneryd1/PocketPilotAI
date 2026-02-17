@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+  <Color x:Key="FinBackground">#F4F7F9</Color>
+  <Color x:Key="FinSurface">#FFFFFF</Color>
+  <Color x:Key="FinSurfaceMuted">#F8FBFC</Color>
+  <Color x:Key="FinText">#102331</Color>
+  <Color x:Key="FinMuted">#647684</Color>
+  <Color x:Key="FinAccent">#0F8A78</Color>
+  <Color x:Key="FinAccentSoft">#1F0F8A78</Color>
+  <Color x:Key="FinLine">#DCE6EC</Color>
+  <Color x:Key="FinDanger">#B63E3E</Color>
+
+  <Style TargetType="ContentPage">
+    <Setter Property="BackgroundColor" Value="{StaticResource FinBackground}" />
+  </Style>
+
+  <Style x:Key="PageTitleLabel" TargetType="Label">
+    <Setter Property="FontFamily" Value="OpenSansSemibold" />
+    <Setter Property="FontSize" Value="32" />
+    <Setter Property="TextColor" Value="{StaticResource FinText}" />
+    <Setter Property="LineHeight" Value="1.15" />
+  </Style>
+
+  <Style x:Key="SectionTitleLabel" TargetType="Label">
+    <Setter Property="FontFamily" Value="OpenSansSemibold" />
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="TextColor" Value="{StaticResource FinText}" />
+  </Style>
+
+  <Style x:Key="BodyLabel" TargetType="Label">
+    <Setter Property="FontFamily" Value="OpenSansRegular" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="TextColor" Value="{StaticResource FinText}" />
+  </Style>
+
+  <Style x:Key="MetaLabel" TargetType="Label">
+    <Setter Property="FontFamily" Value="OpenSansRegular" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="TextColor" Value="{StaticResource FinMuted}" />
+  </Style>
+
+  <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+    <Setter Property="BackgroundColor" Value="{StaticResource FinAccent}" />
+    <Setter Property="TextColor" Value="White" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontFamily" Value="OpenSansSemibold" />
+  </Style>
+
+  <Style x:Key="SurfaceBorderStyle" TargetType="Border">
+    <Setter Property="BackgroundColor" Value="{StaticResource FinSurface}" />
+    <Setter Property="Stroke" Value="{StaticResource FinLine}" />
+    <Setter Property="StrokeThickness" Value="1" />
+    <Setter Property="StrokeShape" Value="RoundRectangle 20" />
+    <Setter Property="Padding" Value="24" />
+    <Setter Property="Margin" Value="0,0,0,24" />
+    <Setter Property="Shadow">
+      <Setter.Value>
+        <Shadow Brush="#20000000" Offset="0,10" Radius="16" Opacity="0.3" />
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="InputSurfaceStyle" TargetType="Border">
+    <Setter Property="BackgroundColor" Value="{StaticResource FinSurfaceMuted}" />
+    <Setter Property="Stroke" Value="{StaticResource FinLine}" />
+    <Setter Property="StrokeShape" Value="RoundRectangle 16" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+</ResourceDictionary>

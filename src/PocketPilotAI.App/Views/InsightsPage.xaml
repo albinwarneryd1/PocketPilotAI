@@ -1,95 +1,151 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage
-    x:Name="InsightsPageRoot"
-    x:Class="PocketPilotAI.App.Views.InsightsPage"
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:ai="clr-namespace:PocketPilotAI.Core.Application.Dtos.Ai;assembly=PocketPilotAI.Core"
-    xmlns:viewmodels="clr-namespace:PocketPilotAI.App.ViewModels"
-    x:DataType="viewmodels:InsightsViewModel"
-    Title="Insights">
+<ContentPage x:Name="InsightsPageRoot"
+             x:Class="PocketPilotAI.App.Views.InsightsPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ai="clr-namespace:PocketPilotAI.Core.Application.Dtos.Ai;assembly=PocketPilotAI.Core"
+             xmlns:components="clr-namespace:PocketPilotAI.App.Components"
+             xmlns:viewmodels="clr-namespace:PocketPilotAI.App.ViewModels"
+             x:DataType="viewmodels:InsightsViewModel"
+             Title="Insights">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="10">
-            <Button Text="Generate AI insights" Command="{Binding RefreshCommand}" />
+  <ScrollView>
+    <VerticalStackLayout x:Name="InsightsRoot" Padding="24" Spacing="24">
+      <VerticalStackLayout Spacing="8">
+        <Label Text="AI Coach" Style="{StaticResource MetaLabel}" />
+        <Label Text="Guided Simulation" Style="{StaticResource PageTitleLabel}" />
+        <Label Text="Test behavior changes in real time before committing." Style="{StaticResource BodyLabel}" TextColor="{StaticResource FinMuted}" />
+      </VerticalStackLayout>
 
-            <CollectionView ItemsSource="{Binding Cards}" HeightRequest="220">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border Padding="12" StrokeShape="RoundRectangle 12" Stroke="#DCE7F0" Margin="0,0,0,10">
-                            <VerticalStackLayout>
-                                <Label Text="{Binding Title}" FontAttributes="Bold" />
-                                <Label Text="{Binding Description}" FontSize="13" />
-                                <Label Text="{Binding SuggestedAction}" FontSize="13" TextColor="#0B6AA8" />
-                                <Label Text="{Binding EstimatedMonthlySavings, StringFormat='Savings: {0:0} SEK/mo'}" FontSize="12" />
-                            </VerticalStackLayout>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+      <components:MetricHeroView Eyebrow="Scenario impact"
+                                 Title="What-if impact score"
+                                 Subtitle="Higher score means stronger projected monthly improvement."
+                                 Score="{Binding ImpactScore}"
+                                 ScoreCaption="{Binding ImpactSummary}" />
 
-            <Label Text="What-if simulation" FontAttributes="Bold" FontSize="18" />
-            <Button Text="Load scenario templates" Command="{Binding LoadTemplatesCommand}" />
+      <components:AIExplanationBlockView Title="Monthly narrative"
+                                         Body="{Binding MonthlyNarrative}" />
 
-            <CollectionView ItemsSource="{Binding Templates}" ItemsLayout="HorizontalList" HeightRequest="130">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="ai:WhatIfScenarioTemplateDto">
-                        <Border Padding="10" StrokeShape="RoundRectangle 12" Stroke="#DCE7F0" Margin="0,0,10,0">
-                            <VerticalStackLayout WidthRequest="220" Spacing="6">
-                                <Label Text="{Binding Name}" FontAttributes="Bold" />
-                                <Label Text="{Binding Description}" FontSize="12" LineBreakMode="TailTruncation" />
-                                <Button Text="Use preset"
-                                        FontSize="12"
-                                        Command="{Binding Source={x:Reference InsightsPageRoot}, Path=BindingContext.ApplyTemplateCommand}"
-                                        CommandParameter="{Binding .}" />
-                            </VerticalStackLayout>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+      <Border Style="{StaticResource SurfaceBorderStyle}">
+        <VerticalStackLayout Spacing="16">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Label Grid.Column="0" Text="Live what-if simulator" Style="{StaticResource SectionTitleLabel}" />
+            <components:TrendBadgeView Grid.Column="1" Text="{Binding LastUpdatedLabel}" Variant="neutral" />
+          </Grid>
 
-            <Entry Placeholder="Scenario name" Text="{Binding ScenarioName}" />
-            <Entry Placeholder="Year" Keyboard="Numeric" Text="{Binding Year}" />
-            <Entry Placeholder="Month" Keyboard="Numeric" Text="{Binding Month}" />
-            <Picker Title="Action type"
-                    ItemsSource="{Binding ActionTypes}"
-                    SelectedItem="{Binding SelectedActionType}" />
-            <Entry Placeholder="Category" Text="{Binding CategoryName}" />
-            <Entry Placeholder="Value" Keyboard="Numeric" Text="{Binding Value}" />
+          <CollectionView ItemsSource="{Binding Templates}" ItemsLayout="HorizontalList" HeightRequest="140">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="ai:WhatIfScenarioTemplateDto">
+                <Border Style="{StaticResource SurfaceBorderStyle}" Padding="16" WidthRequest="260" Margin="0,0,12,0">
+                  <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding Name}" Style="{StaticResource SectionTitleLabel}" />
+                    <Label Text="{Binding Description}" Style="{StaticResource MetaLabel}" />
+                    <Button Text="Use preset"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding Source={x:Reference InsightsPageRoot}, Path=BindingContext.ApplyTemplateCommand}"
+                            CommandParameter="{Binding .}" />
+                  </VerticalStackLayout>
+                </Border>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
 
-            <Button Text="Run what-if" Command="{Binding RunWhatIfCommand}" />
-            <Label Text="{Binding SimulationSummary}" FontSize="12" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+            <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource InputSurfaceStyle}">
+              <Entry Placeholder="Scenario name" Text="{Binding ScenarioName}" />
+            </Border>
 
-            <VerticalStackLayout IsVisible="{Binding HasSimulationResult}" Spacing="8">
-                <Label Text="KPI comparison" FontAttributes="Bold" />
-                <CollectionView ItemsSource="{Binding KpiComparisons}" SelectionMode="None">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="viewmodels:KpiComparisonItem">
-                            <Border Padding="10" StrokeShape="RoundRectangle 12" Stroke="#DCE7F0" Margin="0,0,0,8">
-                                <VerticalStackLayout Spacing="4">
-                                    <Label Text="{Binding Label}" FontAttributes="Bold" />
-                                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="5">
-                                        <Label Grid.Row="0" Grid.Column="0" Text="Baseline" FontSize="12" />
-                                        <ProgressBar Grid.Row="0" Grid.Column="1" Progress="{Binding BaselineRatio}" ProgressColor="#95A7B9" />
-                                        <Label Grid.Row="1" Grid.Column="0" Text="Simulated" FontSize="12" />
-                                        <ProgressBar Grid.Row="1" Grid.Column="1" Progress="{Binding SimulatedRatio}" ProgressColor="#1B85BF" />
-                                    </Grid>
-                                    <Label Text="{Binding BaselineText, StringFormat='Base: {0}'}" FontSize="12" TextColor="#556879" />
-                                    <Label Text="{Binding SimulatedText, StringFormat='Simulated: {0}'}" FontSize="12" TextColor="#556879" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </VerticalStackLayout>
+            <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource InputSurfaceStyle}">
+              <Picker Title="Action type"
+                      ItemsSource="{Binding ActionTypes}"
+                      SelectedItem="{Binding SelectedActionType}" />
+            </Border>
 
-            <CollectionView ItemsSource="{Binding Recommendations}" IsVisible="{Binding HasSimulationResult}">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Label Text="{Binding ., StringFormat='- {0}'}" FontSize="12" Margin="0,0,0,8" />
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+            <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource InputSurfaceStyle}">
+              <Entry Placeholder="Category" Text="{Binding CategoryName}" />
+            </Border>
+
+            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource InputSurfaceStyle}">
+              <Entry Placeholder="Value" Keyboard="Numeric" Text="{Binding Value}" />
+            </Border>
+
+            <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource InputSurfaceStyle}">
+              <Entry Placeholder="Year" Keyboard="Numeric" Text="{Binding Year}" />
+            </Border>
+
+            <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource InputSurfaceStyle}">
+              <Entry Placeholder="Month" Keyboard="Numeric" Text="{Binding Month}" />
+            </Border>
+          </Grid>
+
+          <Button Text="Run simulation" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RunWhatIfCommand}" />
+          <Label Text="{Binding SimulationSummary}" Style="{StaticResource MetaLabel}" />
         </VerticalStackLayout>
-    </ScrollView>
+      </Border>
+
+      <Border Style="{StaticResource SurfaceBorderStyle}" IsVisible="{Binding HasSimulationResult}">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="KPI comparison" Style="{StaticResource SectionTitleLabel}" />
+
+          <CollectionView ItemsSource="{Binding KpiComparisons}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="viewmodels:KpiComparisonItem">
+                <Border Style="{StaticResource SurfaceBorderStyle}" Padding="14" Margin="0,0,0,10">
+                  <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                      <Label Grid.Column="0" Text="{Binding Label}" Style="{StaticResource BodyLabel}" FontFamily="OpenSansSemibold" />
+                      <Label Grid.Column="1" Text="{Binding SimulatedText}" Style="{StaticResource MetaLabel}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="5">
+                      <Label Grid.Row="0" Grid.Column="0" Text="Baseline" Style="{StaticResource MetaLabel}" />
+                      <ProgressBar Grid.Row="0" Grid.Column="1" Progress="{Binding BaselineRatio}" ProgressColor="#95A7B9" HeightRequest="8" />
+                      <Label Grid.Row="1" Grid.Column="0" Text="Simulated" Style="{StaticResource MetaLabel}" />
+                      <ProgressBar Grid.Row="1" Grid.Column="1" Progress="{Binding SimulatedRatio}" ProgressColor="{StaticResource FinAccent}" HeightRequest="8" />
+                    </Grid>
+
+                    <Label Text="{Binding BaselineText, StringFormat='Baseline: {0}'}" Style="{StaticResource MetaLabel}" />
+                  </VerticalStackLayout>
+                </Border>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Border>
+
+      <components:RecommendationCardView Title="Top recommendation"
+                                         Description="{Binding TopRecommendation}"
+                                         CtaText="Track this in transactions"
+                                         CtaCommand="{Binding RefreshCommand}" />
+
+      <Border Style="{StaticResource SurfaceBorderStyle}">
+        <VerticalStackLayout Spacing="16">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Label Grid.Column="0" Text="Leak insights" Style="{StaticResource SectionTitleLabel}" />
+            <Button Grid.Column="1" Text="Refresh" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RefreshCommand}" />
+          </Grid>
+
+          <HorizontalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding LeakBadges}">
+            <BindableLayout.ItemTemplate>
+              <DataTemplate x:DataType="viewmodels:TrendBadgeItem">
+                <components:TrendBadgeView Text="{Binding Text}" Variant="{Binding Variant}" />
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
+          </HorizontalStackLayout>
+
+          <CollectionView ItemsSource="{Binding Cards}" ItemsLayout="HorizontalList" HeightRequest="280">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="ai:InsightCardDto">
+                <components:InsightCardView WidthRequest="320"
+                                            Title="{Binding Title}"
+                                            Description="{Binding Description}"
+                                            ActionText="{Binding SuggestedAction}"
+                                            SavingsText="{Binding EstimatedMonthlySavings, StringFormat='{}{0:0} SEK/month potential'}" />
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Border>
+    </VerticalStackLayout>
+  </ScrollView>
 </ContentPage>

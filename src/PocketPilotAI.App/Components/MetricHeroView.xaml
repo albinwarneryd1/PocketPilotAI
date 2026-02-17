@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView x:Class="PocketPilotAI.App.Components.MetricHeroView"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Name="Root">
+
+  <Border Style="{StaticResource SurfaceBorderStyle}">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <VerticalStackLayout Spacing="12">
+        <Label Text="{Binding Eyebrow, Source={x:Reference Root}}" Style="{StaticResource MetaLabel}" />
+        <Label Text="{Binding Title, Source={x:Reference Root}}" Style="{StaticResource SectionTitleLabel}" />
+        <Label Text="{Binding Subtitle, Source={x:Reference Root}}" Style="{StaticResource BodyLabel}" TextColor="{StaticResource FinMuted}" />
+      </VerticalStackLayout>
+
+      <VerticalStackLayout Grid.Column="1" WidthRequest="128" HorizontalOptions="End" VerticalOptions="Center" Spacing="8">
+        <Label x:Name="ScoreLabel" HorizontalTextAlignment="Center" FontFamily="OpenSansSemibold" FontSize="32" TextColor="{StaticResource FinText}" />
+        <ProgressBar x:Name="ScoreProgress" Progress="0" ProgressColor="{StaticResource FinAccent}" HeightRequest="8" />
+        <Label Text="{Binding ScoreCaption, Source={x:Reference Root}}" Style="{StaticResource MetaLabel}" HorizontalTextAlignment="Center" />
+      </VerticalStackLayout>
+    </Grid>
+  </Border>
+</ContentView>

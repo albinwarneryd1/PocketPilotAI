@@ -1,26 +1,72 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage
-    x:Class="PocketPilotAI.App.Views.TransactionsPage"
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:viewmodels="clr-namespace:PocketPilotAI.App.ViewModels"
-    x:DataType="viewmodels:TransactionsViewModel"
-    Title="Transactions">
+<ContentPage x:Class="PocketPilotAI.App.Views.TransactionsPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:components="clr-namespace:PocketPilotAI.App.Components"
+             xmlns:viewmodels="clr-namespace:PocketPilotAI.App.ViewModels"
+             x:DataType="viewmodels:TransactionsViewModel"
+             Title="Transactions">
 
-    <Grid Padding="20" RowDefinitions="Auto,*">
-        <Button Text="Refresh" Command="{Binding RefreshCommand}" />
+  <ScrollView>
+    <VerticalStackLayout x:Name="TransactionsRoot" Padding="24" Spacing="24">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+        <VerticalStackLayout Grid.Column="0" Spacing="8">
+          <Label Text="Transaction feed" Style="{StaticResource MetaLabel}" />
+          <Label Text="Spending Patterns" Style="{StaticResource PageTitleLabel}" />
+          <Label Text="Focus on repeated behavior you can change this month." Style="{StaticResource BodyLabel}" TextColor="{StaticResource FinMuted}" />
+        </VerticalStackLayout>
 
-        <CollectionView Grid.Row="1" ItemsSource="{Binding Items}" Margin="0,12,0,0">
+        <Button Grid.Column="1" Text="Add" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding OpenAddCommand}" />
+      </Grid>
+
+      <components:MetricHeroView Eyebrow="Pattern quality"
+                                 Title="Transaction Pulse"
+                                 Subtitle="Category quality and recurring visibility drive recommendation precision."
+                                 Score="{Binding PulseScore}"
+                                 ScoreCaption="{Binding PulseSummary}" />
+
+      <components:AIExplanationBlockView Title="Pattern narrative"
+                                         Body="{Binding PatternNarrative}" />
+
+      <Border Style="{StaticResource SurfaceBorderStyle}">
+        <VerticalStackLayout Spacing="16">
+          <HorizontalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding PatternBadges}">
+            <BindableLayout.ItemTemplate>
+              <DataTemplate x:DataType="viewmodels:TrendBadgeItem">
+                <components:TrendBadgeView Text="{Binding Text}" Variant="{Binding Variant}" />
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
+          </HorizontalStackLayout>
+
+          <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
             <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Grid Padding="0,8" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                        <Label Text="{Binding MerchantName}" FontAttributes="Bold" />
-                        <Label Grid.Column="1" Text="{Binding Amount, StringFormat='{0:0.##}'}" FontAttributes="Bold" />
-                        <Label Grid.Row="1" Text="{Binding CategoryName}" FontSize="12" />
-                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding DateUtc, StringFormat='{0:yyyy-MM-dd}'}" FontSize="12" />
+              <DataTemplate x:DataType="viewmodels:TransactionListItem">
+                <Border Style="{StaticResource SurfaceBorderStyle}" Padding="16" Margin="0,0,0,16">
+                  <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                      <Label Grid.Column="0" Text="{Binding Merchant}" Style="{StaticResource SectionTitleLabel}" />
+                      <Label Grid.Column="1" Text="{Binding AmountText}" Style="{StaticResource BodyLabel}" FontFamily="OpenSansSemibold" />
                     </Grid>
-                </DataTemplate>
+
+                    <Label Text="{Binding Category}" Style="{StaticResource BodyLabel}" TextColor="{StaticResource FinMuted}" />
+
+                    <HorizontalStackLayout Spacing="8">
+                      <components:TrendBadgeView Text="{Binding TypeText}" Variant="neutral" />
+                      <components:TrendBadgeView Text="{Binding DateText}" Variant="neutral" />
+                      <components:TrendBadgeView Text="Recurring" Variant="up" IsVisible="{Binding IsRecurring}" />
+                    </HorizontalStackLayout>
+
+                    <Label Text="{Binding Notes, StringFormat='Notes: {0}'}" Style="{StaticResource MetaLabel}" />
+                    <Label Text="{Binding AccountId, StringFormat='Account: {0}'}" Style="{StaticResource MetaLabel}" />
+                  </VerticalStackLayout>
+                </Border>
+              </DataTemplate>
             </CollectionView.ItemTemplate>
-        </CollectionView>
-    </Grid>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Border>
+
+      <Button Text="Refresh" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RefreshCommand}" />
+    </VerticalStackLayout>
+  </ScrollView>
 </ContentPage>

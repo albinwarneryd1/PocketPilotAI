@@ -1,23 +1,77 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage
-    x:Class="PocketPilotAI.App.Views.OverviewPage"
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:viewmodels="clr-namespace:PocketPilotAI.App.ViewModels"
-    x:DataType="viewmodels:OverviewViewModel"
-    Title="Overview">
+<ContentPage x:Class="PocketPilotAI.App.Views.OverviewPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:components="clr-namespace:PocketPilotAI.App.Components"
+             xmlns:viewmodels="clr-namespace:PocketPilotAI.App.ViewModels"
+             x:DataType="viewmodels:OverviewViewModel"
+             Title="Overview">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="12">
-            <Button Text="Refresh" Command="{Binding RefreshCommand}" />
-            <Label Text="Monthly Income" FontSize="14" />
-            <Label Text="{Binding Income, StringFormat='{0:0} SEK'}" FontSize="22" FontAttributes="Bold" />
-            <Label Text="Monthly Expenses" FontSize="14" />
-            <Label Text="{Binding Expenses, StringFormat='{0:0} SEK'}" FontSize="22" FontAttributes="Bold" />
-            <Label Text="Remaining Budget" FontSize="14" />
-            <Label Text="{Binding RemainingBudget, StringFormat='{0:0} SEK'}" FontSize="22" FontAttributes="Bold" />
-            <Label Text="Top Merchant" FontSize="14" />
-            <Label Text="{Binding TopMerchant}" FontSize="18" />
+  <ScrollView>
+    <VerticalStackLayout x:Name="OverviewRoot" Padding="24" Spacing="24">
+      <VerticalStackLayout Spacing="8">
+        <Label Text="{Binding PeriodLabel}" Style="{StaticResource MetaLabel}" />
+        <Label Text="{Binding Greeting}" Style="{StaticResource PageTitleLabel}" />
+        <Label Text="A premium snapshot of your financial trajectory." Style="{StaticResource BodyLabel}" TextColor="{StaticResource FinMuted}" />
+      </VerticalStackLayout>
+
+      <components:MetricHeroView Eyebrow="Financial health"
+                                 Title="Health Score"
+                                 Subtitle="Based on cash flow, budget discipline, and recurring spend share."
+                                 Score="{Binding HealthScore}"
+                                 ScoreCaption="{Binding HealthSummary}" />
+
+      <components:AIExplanationBlockView Title="Monthly narrative"
+                                         Body="{Binding MonthlyNarrative}" />
+
+      <Border Style="{StaticResource SurfaceBorderStyle}">
+        <VerticalStackLayout Spacing="16">
+          <HorizontalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding PatternBadges}">
+            <BindableLayout.ItemTemplate>
+              <DataTemplate x:DataType="viewmodels:TrendBadgeItem">
+                <components:TrendBadgeView Text="{Binding Text}" Variant="{Binding Variant}" />
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
+          </HorizontalStackLayout>
+
+          <CollectionView ItemsSource="{Binding Insights}" ItemsLayout="HorizontalList" HeightRequest="250">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="viewmodels:InsightTile">
+                <components:InsightCardView WidthRequest="300"
+                                            Title="{Binding Title}"
+                                            Description="{Binding Description}"
+                                            ActionText="{Binding ActionText}"
+                                            SavingsText="{Binding SavingsText}" />
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
         </VerticalStackLayout>
-    </ScrollView>
+      </Border>
+
+      <Border Style="{StaticResource SurfaceBorderStyle}">
+        <VerticalStackLayout Spacing="16">
+          <Label Text="Spending pace trend" Style="{StaticResource SectionTitleLabel}" />
+
+          <CollectionView ItemsSource="{Binding SpendingTrend}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="viewmodels:MonthlyTrendItem">
+                <Grid ColumnDefinitions="70,*,70" ColumnSpacing="10" Margin="0,0,0,8">
+                  <Label Grid.Column="0" Text="{Binding Label}" Style="{StaticResource MetaLabel}" />
+                  <ProgressBar Grid.Column="1" Progress="{Binding Ratio}" ProgressColor="{StaticResource FinAccent}" HeightRequest="10" />
+                  <Label Grid.Column="2" Text="{Binding Amount, StringFormat='{}{0:0}'}" Style="{StaticResource MetaLabel}" HorizontalTextAlignment="End" />
+                </Grid>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Border>
+
+      <components:RecommendationCardView Title="Next best move"
+                                         Description="{Binding RecommendationText}"
+                                         CtaText="Run 30-day simulation"
+                                         CtaCommand="{Binding OpenSimulationCommand}" />
+
+      <Button Text="Refresh" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RefreshCommand}" />
+    </VerticalStackLayout>
+  </ScrollView>
 </ContentPage>

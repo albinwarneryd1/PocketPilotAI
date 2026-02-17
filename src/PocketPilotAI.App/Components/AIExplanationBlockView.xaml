@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView x:Class="PocketPilotAI.App.Components.AIExplanationBlockView"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Name="Root">
+
+  <Border Style="{StaticResource SurfaceBorderStyle}">
+    <VerticalStackLayout Spacing="12">
+      <Label Text="AI narrative" Style="{StaticResource MetaLabel}" />
+      <Label Text="{Binding Title, Source={x:Reference Root}}" Style="{StaticResource SectionTitleLabel}" />
+      <Label Text="{Binding Body, Source={x:Reference Root}}" Style="{StaticResource BodyLabel}" />
+    </VerticalStackLayout>
+  </Border>
+</ContentView>

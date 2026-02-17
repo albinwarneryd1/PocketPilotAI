@@ -5,33 +5,39 @@
     <div class="page-head-copy">
       <p class="page-kicker">Transactions</p>
       <h2 class="page-title">Spending decisions</h2>
-      <p class="muted">Review behavior, then take one action.</p>
+      <p class="muted">One metric, one recommendation, one review list.</p>
     </div>
 
     <a class="btn-primary" href="/add-transaction">Add transaction</a>
   </section>
 
-  <HeroCard AdditionalClass="decision-hero card-rise">
-    <p class="decision-kicker">Spending pattern health</p>
-    <h3 class="decision-value">@pulseScore / 100</h3>
-    <p class="decision-subtitle">@pulseSummary</p>
-    <div class="action-row">
-      <a class="btn-primary" href="/insights">Improve with what-if</a>
-    </div>
-  </HeroCard>
+  <SceneHero
+    Label="Spending pattern health"
+    TargetNumber="@pulseScore"
+    NumberSuffix=" / 100"
+    Subtitle="@pulseSummary"
+    ActionHint="@($"Average transaction: {averageAmount:0} SEK")"
+    PrimaryActionLabel="Improve with what-if"
+    PrimaryActionHref="/insights"
+    GaugeValue="pulseScore"
+    SparklinePoints="spendingSparkline" />
 
-  <AIExplanationBlock Title="Pattern insight" Body="@patternNarrative" />
+  <InlineCard AdditionalClass="scene-inline card-rise">
+    <h3>AI pattern insight</h3>
+    <p class="scene-inline-main">@patternNarrative</p>
+    <a class="btn-secondary" href="/insights">Open simulation</a>
+  </InlineCard>
 
   <section class="panel">
     <div class="section-header">
       <div class="section-header-copy">
         <h3 class="section-title">Transaction list</h3>
-        <p class="muted">This list is your primary review surface.</p>
+        <p class="muted">Main review area. Filter then act.</p>
       </div>
     </div>
 
     <div class="form-grid">
-      <PremiumFormField Label="Month filter">
+      <PremiumFormField Label="Month">
         <InputSelect @bind-Value="selectedMonth" @onchange="OnFilterChanged">
           @foreach (var month in monthFilters)
           {
@@ -40,7 +46,7 @@
         </InputSelect>
       </PremiumFormField>
 
-      <PremiumFormField Label="Category filter">
+      <PremiumFormField Label="Category">
         <InputSelect @bind-Value="selectedCategory" @onchange="OnFilterChanged">
           @foreach (var category in categoryFilters)
           {
@@ -87,20 +93,20 @@
   </section>
 
   <details class="decision-details">
-    <summary>Advanced details</summary>
+    <summary>Show advanced quality details</summary>
     <div class="decision-details-body">
       <section class="panel">
         <div class="kpi-grid">
           <BaseCard>
-            <p class="metric-eyebrow">In view</p>
+            <p class="scene-label">In view</p>
             <strong>@filteredItems.Count</strong>
           </BaseCard>
           <BaseCard>
-            <p class="metric-eyebrow">Recurring</p>
+            <p class="scene-label">Recurring</p>
             <strong>@recurringCount</strong>
           </BaseCard>
           <BaseCard>
-            <p class="metric-eyebrow">Uncategorized</p>
+            <p class="scene-label">Uncategorized</p>
             <strong>@uncategorizedCount</strong>
           </BaseCard>
         </div>
@@ -119,6 +125,7 @@
 
   private IReadOnlyList<MonthFilterItem> monthFilters = [];
   private IReadOnlyList<string> categoryFilters = [];
+  private IReadOnlyList<decimal> spendingSparkline = [8m, 9m, 10m, 9m, 11m, 12m];
 
   private string selectedMonth = "all";
   private string selectedCategory = "all";
@@ -173,7 +180,7 @@
     pulseScore = BuildPulseScore(uncategorizedCount, recurringCount, filteredItems.Count);
 
     pulseSummary = filteredItems.Any()
-      ? $"Average {averageAmount:0} SEK per transaction. {recurringCount} recurring and {uncategorizedCount} uncategorized in this view."
+      ? $"{filteredItems.Count} records in view. Recurring: {recurringCount}. Uncategorized: {uncategorizedCount}."
       : "No transactions in this filter set.";
 
     string topCategory = filteredItems
@@ -184,8 +191,34 @@
       .FirstOrDefault() ?? "Uncategorized";
 
     patternNarrative = filteredItems.Any()
-      ? $"Your biggest spend category here is {topCategory}. Cleaning uncategorized transactions first will improve the quality of AI recommendations."
+      ? $"Your biggest spend category here is {topCategory}. Cleaning uncategorized transactions first improves recommendation quality."
       : "Add transactions to unlock pattern detection and recommendations.";
+
+    spendingSparkline = BuildSparkline(items);
+  }
+
+  private static IReadOnlyList<decimal> BuildSparkline(IReadOnlyList<TransactionDto> source)
+  {
+    if (!source.Any())
+    {
+      return [8m, 9m, 10m, 9m, 11m, 12m];
+    }
+
+    DateTime anchor = new DateTime(source.Max(x => x.DateUtc).Year, source.Max(x => x.DateUtc).Month, 1);
+    List<decimal> values = [];
+
+    for (int i = 5; i >= 0; i--)
+    {
+      DateTime month = anchor.AddMonths(-i);
+      decimal spend = source
+        .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
+        .Where(x => x.DateUtc.Year == month.Year && x.DateUtc.Month == month.Month)
+        .Sum(x => x.Amount);
+
+      values.Add(spend <= 0 ? 1m : spend);
+    }
+
+    return values;
   }
 
   private static IReadOnlyList<MonthFilterItem> BuildMonthFilters(IReadOnlyList<TransactionDto> source)

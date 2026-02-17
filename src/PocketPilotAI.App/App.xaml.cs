@@ -2,9 +2,14 @@ namespace PocketPilotAI.App;
 
 public partial class App : Application
 {
+  private readonly AppShell shell;
+
   public App(AppShell shell)
   {
     InitializeComponent();
-    MainPage = shell;
+    this.shell = shell;
   }
+
+  protected override Window CreateWindow(IActivationState? activationState)
+    => new(shell);
 }

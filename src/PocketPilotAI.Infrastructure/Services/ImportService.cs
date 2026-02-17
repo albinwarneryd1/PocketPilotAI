@@ -53,7 +53,7 @@ public class ImportService(AppDbContext dbContext, ITransactionService transacti
         continue;
       }
 
-      rows.Add(row);
+      rows.Add(row!);
     }
 
     return Result<ImportPreviewDto>.Success(new ImportPreviewDto
@@ -92,9 +92,14 @@ public class ImportService(AppDbContext dbContext, ITransactionService transacti
     int skipped = 0;
     List<string> warnings = new();
 
-    while (!reader.EndOfStream)
+    while (true)
     {
       string? line = await reader.ReadLineAsync(cancellationToken);
+      if (line is null)
+      {
+        break;
+      }
+
       if (string.IsNullOrWhiteSpace(line))
       {
         continue;
@@ -110,7 +115,7 @@ public class ImportService(AppDbContext dbContext, ITransactionService transacti
         continue;
       }
 
-      TransactionType type = row.Amount < 0 ? TransactionType.Expense : TransactionType.Income;
+      TransactionType type = row!.Amount < 0 ? TransactionType.Expense : TransactionType.Income;
       decimal amount = Math.Abs(row.Amount);
 
       Result<TransactionDto> createResult = await transactionService.CreateAsync(
@@ -177,7 +182,7 @@ public class ImportService(AppDbContext dbContext, ITransactionService transacti
     row = new ImportRowPreviewDto
     {
       DateUtc = DateTime.SpecifyKind(date, DateTimeKind.Utc),
-      Merchant = merchant,
+      Merchant = merchant ?? "Unknown Merchant",
       Amount = amount,
       Currency = string.IsNullOrWhiteSpace(currency) ? "SEK" : currency.ToUpperInvariant(),
       Category = category
@@ -199,7 +204,15 @@ public class ImportService(AppDbContext dbContext, ITransactionService transacti
       return false;
     }
 
-    int index = headers.IndexOf(header);
+    int index = -1;
+    for (int i = 0; i < headers.Count; i++)
+    {
+      if (string.Equals(headers[i], header, StringComparison.OrdinalIgnoreCase))
+      {
+        index = i;
+        break;
+      }
+    }
     if (index < 0 || index >= values.Count)
     {
       return false;

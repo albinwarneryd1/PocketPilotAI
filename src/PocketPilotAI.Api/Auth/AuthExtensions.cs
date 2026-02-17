@@ -1,6 +1,5 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace PocketPilotAI.Api.Auth;
@@ -9,31 +8,35 @@ public static class AuthExtensions
 {
   public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
   {
+    JwtOptions jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+    jwtOptions.Issuer = configuration["POCKETPILOTAI_JWT_ISSUER"] ?? jwtOptions.Issuer;
+    jwtOptions.Audience = configuration["POCKETPILOTAI_JWT_AUDIENCE"] ?? jwtOptions.Audience;
+    jwtOptions.Key = configuration["POCKETPILOTAI_JWT_KEY"] ?? jwtOptions.Key;
+
     services
       .AddOptions<JwtOptions>()
-      .Bind(configuration.GetSection(JwtOptions.SectionName))
-      .PostConfigure(options =>
+      .Configure(options =>
       {
-        options.Issuer = configuration["POCKETPILOTAI_JWT_ISSUER"] ?? options.Issuer;
-        options.Audience = configuration["POCKETPILOTAI_JWT_AUDIENCE"] ?? options.Audience;
-        options.Key = configuration["POCKETPILOTAI_JWT_KEY"] ?? options.Key;
+        options.Issuer = jwtOptions.Issuer;
+        options.Audience = jwtOptions.Audience;
+        options.Key = jwtOptions.Key;
+        options.ExpirationMinutes = jwtOptions.ExpirationMinutes;
       });
 
     services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
     services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-      .AddJwtBearer((options, provider) =>
+      .AddJwtBearer(options =>
       {
-        JwtOptions jwt = provider.GetRequiredService<IOptions<JwtOptions>>().Value;
         options.TokenValidationParameters = new TokenValidationParameters
         {
           ValidateIssuer = true,
           ValidateAudience = true,
           ValidateIssuerSigningKey = true,
           ValidateLifetime = true,
-          ValidIssuer = jwt.Issuer,
-          ValidAudience = jwt.Audience,
-          IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+          ValidIssuer = jwtOptions.Issuer,
+          ValidAudience = jwtOptions.Audience,
+          IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
           ClockSkew = TimeSpan.FromMinutes(1)
         };
       });

@@ -32,7 +32,9 @@
             <Entry Placeholder="Scenario name" Text="{Binding ScenarioName}" />
             <Entry Placeholder="Year" Keyboard="Numeric" Text="{Binding Year}" />
             <Entry Placeholder="Month" Keyboard="Numeric" Text="{Binding Month}" />
-            <Entry Placeholder="Action type" Text="{Binding ActionTypeInput}" />
+            <Picker Title="Action type"
+                    ItemsSource="{Binding ActionTypes}"
+                    SelectedItem="{Binding SelectedActionType}" />
             <Entry Placeholder="Category" Text="{Binding CategoryName}" />
             <Entry Placeholder="Value" Keyboard="Numeric" Text="{Binding Value}" />
 

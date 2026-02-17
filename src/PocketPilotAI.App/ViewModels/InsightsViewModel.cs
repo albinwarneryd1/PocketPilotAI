@@ -13,7 +13,7 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
   private int month = DateTime.UtcNow.Month;
   private string categoryName = "Eating Out";
   private decimal value = 15m;
-  private string actionTypeInput = WhatIfActionType.ReduceCategoryPercent.ToString();
+  private WhatIfActionType selectedActionType = WhatIfActionType.ReduceCategoryPercent;
   private string simulationSummary = string.Empty;
 
   public ObservableCollection<InsightCardDto> Cards { get; } = [];
@@ -21,6 +21,8 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
   public ObservableCollection<WhatIfScenarioTemplateDto> Templates { get; } = [];
 
   public ObservableCollection<string> Recommendations { get; } = [];
+
+  public IReadOnlyList<WhatIfActionType> ActionTypes { get; } = Enum.GetValues<WhatIfActionType>();
 
   public string ScenarioName
   {
@@ -52,10 +54,10 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
     set => SetProperty(ref this.value, value);
   }
 
-  public string ActionTypeInput
+  public WhatIfActionType SelectedActionType
   {
-    get => actionTypeInput;
-    set => SetProperty(ref actionTypeInput, value);
+    get => selectedActionType;
+    set => SetProperty(ref selectedActionType, value);
   }
 
   public string SimulationSummary
@@ -119,7 +121,7 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
     WhatIfScenarioTemplateDto? first = Templates.FirstOrDefault();
     if (first is not null)
     {
-      ActionTypeInput = first.ActionType.ToString();
+      SelectedActionType = first.ActionType;
       CategoryName = first.SuggestedCategory;
       Value = first.SuggestedValue;
     }
@@ -130,12 +132,6 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
     if (!sessionService.IsAuthenticated)
     {
       SimulationSummary = "You must sign in first.";
-      return;
-    }
-
-    if (!Enum.TryParse(ActionTypeInput, true, out WhatIfActionType actionType))
-    {
-      SimulationSummary = "Invalid action type value.";
       return;
     }
 
@@ -153,14 +149,14 @@ public class InsightsViewModel(ApiClient apiClient, UserSessionService sessionSe
           [
             new WhatIfActionDto
             {
-              Type = actionType,
-              Label = actionType.ToString(),
+              Type = SelectedActionType,
+              Label = SelectedActionType.ToString(),
               CategoryName = CategoryName,
               Value = Value,
-              TransactionType = actionType == WhatIfActionType.AddRecurringIncome
+              TransactionType = SelectedActionType == WhatIfActionType.AddRecurringIncome
                 ? TransactionType.Income
                 : TransactionType.Expense,
-              IsRecurring = actionType != WhatIfActionType.AddOneOffTransaction,
+              IsRecurring = SelectedActionType != WhatIfActionType.AddOneOffTransaction,
               EffectiveDateUtc = DateTime.UtcNow
             }
           ]

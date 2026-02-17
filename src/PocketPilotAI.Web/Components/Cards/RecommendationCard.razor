@@ -1,0 +1,20 @@
+<article class="recommendation-card card-rise">
+  <p class="metric-eyebrow">Recommendation</p>
+  <h3>@Title</h3>
+  <p>@Description</p>
+
+  @if (!string.IsNullOrWhiteSpace(CtaLabel) && !string.IsNullOrWhiteSpace(CtaHref))
+  {
+    <a class="btn-primary" href="@CtaHref">@CtaLabel</a>
+  }
+</article>
+
+@code {
+  [Parameter] public string Title { get; set; } = string.Empty;
+
+  [Parameter] public string Description { get; set; } = string.Empty;
+
+  [Parameter] public string CtaLabel { get; set; } = string.Empty;
+
+  [Parameter] public string CtaHref { get; set; } = string.Empty;
+}

@@ -1,13 +1,13 @@
 .shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 260px 1fr;
-  background: radial-gradient(circle at top right, #f6f4ed, #eef2f3 45%, #e8edf2 100%);
+  grid-template-columns: 280px 1fr;
+  background: radial-gradient(circle at top right, #f8fbfc, #f2f6f8 46%, #edf3f7 100%);
 }
 
 .sidebar {
-  border-right: 1px solid #dbe2ea;
-  background: #102b3f;
+  border-right: 1px solid #d9e5ec;
+  background: #0f2736;
 }
 
 .main-content {
@@ -16,24 +16,25 @@
 }
 
 .topbar {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #dde5eb;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #dce6ec;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
 }
 
 .topbar h1 {
-  font-size: 1.25rem;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
 .topbar p {
-  margin: 0.2rem 0 0;
-  color: #556574;
+  margin: 0.3rem 0 0;
+  color: #637685;
 }
 
 .page-content {
-  padding: 1.5rem;
+  padding: 2rem;
 }
 
 @media (max-width: 960px) {

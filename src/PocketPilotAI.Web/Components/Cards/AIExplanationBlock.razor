@@ -1,0 +1,21 @@
+<article class="ai-explanation card-rise">
+  <p class="metric-eyebrow">AI Narrative</p>
+  <h3>@Title</h3>
+
+  @if (IsLoading)
+  {
+    <p class="muted">Generating practical summary...</p>
+  }
+  else
+  {
+    <p>@Body</p>
+  }
+</article>
+
+@code {
+  [Parameter] public string Title { get; set; } = "Monthly coach summary";
+
+  [Parameter] public string Body { get; set; } = string.Empty;
+
+  [Parameter] public bool IsLoading { get; set; }
+}

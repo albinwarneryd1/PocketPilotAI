@@ -1,45 +1,131 @@
 @page "/transactions"
 
-<h2>Transactions</h2>
+<div class="page-stack">
+  <section class="list-card-head">
+    <div>
+      <p class="metric-eyebrow">Transaction feed</p>
+      <h2>Spending Patterns</h2>
+      <p class="muted">Fokusera på mönster du kan justera den här veckan.</p>
+    </div>
 
-@if (!items.Any())
-{
-  <p class="muted">No transactions yet.</p>
-}
-else
-{
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Merchant</th>
-        <th>Category</th>
-        <th>Type</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach (var item in items)
-      {
-        <tr>
-          <td>@item.DateUtc.ToString("yyyy-MM-dd")</td>
-          <td>@item.MerchantName</td>
-          <td>@(string.IsNullOrWhiteSpace(item.CategoryName) ? "Uncategorized" : item.CategoryName)</td>
-          <td>@item.Type</td>
-          <td>@item.Amount.ToString("0.##") @item.Currency</td>
-        </tr>
-      }
-    </tbody>
-  </table>
-}
+    <a class="btn-primary" href="/add-transaction">Add transaction</a>
+  </section>
+
+  <MetricHero
+    Eyebrow="Pattern quality"
+    Title="Transaction Pulse"
+    Subtitle="Högre score betyder tydligare kategorier och bättre kontroll över spend-frekvens."
+    Score="pulseScore"
+    ValueLabel="@pulseLabel"
+    PrimaryActionLabel="Run what-if"
+    PrimaryActionHref="/insights" />
+
+  <AIExplanationBlock Title="Pattern highlight" Body="@patternNarrative" />
+
+  <section class="panel">
+    <div class="list-card-head">
+      <h3>Recent transactions</h3>
+      <div class="badge-row">
+        @foreach (var badge in badges)
+        {
+          <TrendBadge Label="@badge.Label" Variant="@badge.Variant" />
+        }
+      </div>
+    </div>
+
+    @if (!items.Any())
+    {
+      <p class="muted">No transactions yet.</p>
+    }
+    else
+    {
+      <div class="card-grid">
+        @foreach (var item in items)
+        {
+          <article class="surface-card list-card card-rise">
+            <div class="list-card-head">
+              <h4>@(string.IsNullOrWhiteSpace(item.MerchantName) ? "Unknown merchant" : item.MerchantName)</h4>
+              <strong>@item.Amount.ToString("0.##") @item.Currency</strong>
+            </div>
+
+            <p>@(string.IsNullOrWhiteSpace(item.CategoryName) ? "Uncategorized" : item.CategoryName)</p>
+
+            <div class="badge-row">
+              <TrendBadge Label="@item.Type.ToString()" Variant="neutral" />
+              <TrendBadge Label="@item.DateUtc.ToString("yyyy-MM-dd")" Variant="neutral" />
+              @if (item.IsRecurring)
+              {
+                <TrendBadge Label="Recurring" Variant="up" />
+              }
+            </div>
+
+            <details>
+              <summary>Advanced details</summary>
+              <p class="muted">Account: @item.AccountId</p>
+              <p class="muted">Notes: @(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</p>
+            </details>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</div>
 
 @code {
   [Inject] private TransactionsApi TransactionsApi { get; set; } = default!;
 
   private IReadOnlyList<TransactionDto> items = [];
 
+  private int pulseScore;
+  private string pulseLabel = "Waiting for transaction data.";
+  private string patternNarrative = "Loading transaction behavior summary...";
+  private IReadOnlyList<BadgeItem> badges = [];
+
   protected override async Task OnInitializedAsync()
   {
-    items = await TransactionsApi.GetAsync();
+    items = (await TransactionsApi.GetAsync())
+      .OrderByDescending(x => x.DateUtc)
+      .ToList();
+
+    decimal total = items.Sum(x => x.Amount);
+    int uncategorized = items.Count(x => string.IsNullOrWhiteSpace(x.CategoryName));
+    int recurring = items.Count(x => x.IsRecurring);
+    decimal avg = items.Any() ? total / items.Count : 0;
+
+    pulseScore = BuildPulseScore(uncategorized, recurring, items.Count);
+    pulseLabel = $"Avg size {avg:0} SEK, recurring {recurring} transactions.";
+
+    string topCategory = items
+      .Where(x => !string.IsNullOrWhiteSpace(x.CategoryName))
+      .GroupBy(x => x.CategoryName)
+      .OrderByDescending(g => g.Sum(x => x.Amount))
+      .Select(g => g.Key)
+      .FirstOrDefault() ?? "Uncategorized";
+
+    patternNarrative =
+      $"Your heaviest category is {topCategory}. You have {recurring} recurring transactions and {uncategorized} uncategorized rows. Prioritize classifying uncategorized entries to improve recommendation accuracy.";
+
+    badges =
+    [
+      new BadgeItem($"{items.Count} entries", "neutral"),
+      new BadgeItem($"{recurring} recurring", recurring > 0 ? "up" : "neutral"),
+      new BadgeItem($"{uncategorized} uncategorized", uncategorized > 0 ? "down" : "up")
+    ];
   }
+
+  private static int BuildPulseScore(int uncategorized, int recurring, int total)
+  {
+    if (total == 0)
+    {
+      return 0;
+    }
+
+    decimal quality = 75m;
+    quality -= (uncategorized / (decimal)total) * 40m;
+    quality += recurring > 0 ? 10m : -5m;
+
+    return (int)Math.Clamp(Math.Round(quality), 0, 100);
+  }
+
+  private sealed record BadgeItem(string Label, string Variant);
 }

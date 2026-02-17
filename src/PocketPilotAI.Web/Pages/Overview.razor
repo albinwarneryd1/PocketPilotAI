@@ -1,52 +1,219 @@
 @page "/"
 @page "/overview"
+@inject UserSessionState Session
 
-<h2>Overview</h2>
+<div class="page-stack">
+  <section>
+    <p class="metric-eyebrow">@periodLabel</p>
+    <h2>Hej @displayName</h2>
+    <p class="muted">En snabb översikt av din ekonomiska hälsa och vad du kan göra härnäst.</p>
+  </section>
 
-<div class="kpi-grid">
-  <KpiCard Label="Income" Value="@($"{income:0} SEK")" Hint="Current month" />
-  <KpiCard Label="Expenses" Value="@($"{expenses:0} SEK")" Hint="Current month" />
-  <KpiCard Label="Budget Left" Value="@($"{remainingBudget:0} SEK")" Hint="Planned - spent" />
-  <KpiCard Label="Top Merchant" Value="@topMerchant" Hint="Most transactions" />
+  <MetricHero
+    Eyebrow="Financial health"
+    Title="Health Score"
+    Subtitle="Bygger på kassaflöde, budgetdisciplin och återkommande kostnader."
+    Score="healthScore"
+    ValueLabel="@healthSummary"
+    PrimaryActionLabel="Open what-if simulator"
+    PrimaryActionHref="/insights" />
+
+  <AIExplanationBlock
+    Title="Monthly AI narrative"
+    Body="@monthlyNarrative"
+    IsLoading="@isLoadingNarrative" />
+
+  <section class="panel">
+    <div class="list-card-head">
+      <h3>Leak opportunities</h3>
+      <div class="badge-row">
+        @foreach (var badge in patternBadges)
+        {
+          <TrendBadge Label="@badge.Label" Variant="@badge.Variant" />
+        }
+      </div>
+    </div>
+
+    <div class="scroll-row">
+      @foreach (var card in leakCards)
+      {
+        <InsightCard Item="card" />
+      }
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>Spending pace (last months)</h3>
+
+    @if (!trendItems.Any())
+    {
+      <p class="muted">Not enough data for trend yet.</p>
+    }
+    else
+    {
+      <div class="bars">
+        @foreach (var item in trendItems)
+        {
+          decimal width = trendMax <= 0 ? 0 : (item.Amount / trendMax) * 100m;
+          <div class="bar-row card-rise">
+            <span>@item.Label</span>
+            <div class="bar-track"><div class="bar-fill" style="width:@($"{width:0}%")"></div></div>
+            <strong>@item.Amount.ToString("0")</strong>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <RecommendationCard
+    Title="Next best move"
+    Description="@primaryRecommendation"
+    CtaLabel="Run 30-day scenario"
+    CtaHref="/insights" />
 </div>
-
-<section class="panel">
-  <h3>Category spend</h3>
-  <CategoryBarChart Items="categoryChart" />
-</section>
 
 @code {
   [Inject] private TransactionsApi TransactionsApi { get; set; } = default!;
   [Inject] private BudgetsApi BudgetsApi { get; set; } = default!;
+  [Inject] private InsightsApi InsightsApi { get; set; } = default!;
+
+  private string displayName = "there";
+  private string periodLabel = string.Empty;
+
+  private int healthScore;
+  private string healthSummary = "Score pending";
+  private string monthlyNarrative = "Preparing AI summary...";
+  private bool isLoadingNarrative = true;
 
   private decimal income;
   private decimal expenses;
   private decimal remainingBudget;
-  private string topMerchant = "-";
-  private IReadOnlyList<CategoryBarChart.CategoryChartItem> categoryChart = [];
+  private decimal recurringShare;
+
+  private IReadOnlyList<InsightCardDto> leakCards = [];
+  private IReadOnlyList<TrendItem> trendItems = [];
+  private decimal trendMax;
+
+  private IReadOnlyList<TrendBadgeItem> patternBadges = [];
+  private string primaryRecommendation = "Open simulator and cap one rising category for the next 30 days.";
 
   protected override async Task OnInitializedAsync()
   {
-    var transactions = await TransactionsApi.GetAsync();
-    var budgets = await BudgetsApi.GetMonthAsync(DateTime.UtcNow.Year, DateTime.UtcNow.Month);
+    periodLabel = DateTime.UtcNow.ToString("MMMM yyyy");
+    displayName = string.IsNullOrWhiteSpace(Session.DisplayName) ? "there" : Session.DisplayName;
+
+    IReadOnlyList<TransactionDto> transactions = await TransactionsApi.GetAsync();
+    IReadOnlyList<BudgetDto> budgets = await BudgetsApi.GetMonthAsync(DateTime.UtcNow.Year, DateTime.UtcNow.Month);
 
     income = transactions.Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Income).Sum(x => x.Amount);
     expenses = transactions.Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense).Sum(x => x.Amount);
     remainingBudget = budgets.Sum(x => x.RemainingAmount);
 
-    topMerchant = transactions
-      .Where(x => !string.IsNullOrWhiteSpace(x.MerchantName))
-      .GroupBy(x => x.MerchantName)
-      .OrderByDescending(x => x.Count())
-      .Select(x => x.Key)
-      .FirstOrDefault() ?? "-";
+    decimal recurringExpense = transactions
+      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense && x.IsRecurring)
+      .Sum(x => x.Amount);
 
-    categoryChart = transactions
-      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
-      .GroupBy(x => string.IsNullOrWhiteSpace(x.CategoryName) ? "Uncategorized" : x.CategoryName)
-      .Select(g => new CategoryBarChart.CategoryChartItem(g.Key, g.Sum(x => x.Amount)))
-      .OrderByDescending(x => x.Amount)
-      .Take(6)
-      .ToList();
+    recurringShare = expenses <= 0 ? 0 : recurringExpense / expenses;
+
+    healthScore = BuildHealthScore(income, expenses, remainingBudget, recurringShare);
+    healthSummary = BuildHealthSummary(healthScore);
+
+    leakCards = await InsightsApi.GetLeakInsightsAsync(new LeakFinderRequest
+    {
+      FromUtc = DateTime.UtcNow.AddMonths(-1),
+      ToUtc = DateTime.UtcNow,
+      MaxSuggestions = 5
+    });
+
+    IReadOnlyList<InsightCardDto> monthlySummary = await InsightsApi.GetMonthlySummaryAsync(new MonthlySummaryRequest
+    {
+      Year = DateTime.UtcNow.Year,
+      Month = DateTime.UtcNow.Month
+    });
+
+    if (monthlySummary.Count > 0)
+    {
+      monthlyNarrative = monthlySummary[0].Description;
+      primaryRecommendation = monthlySummary[0].SuggestedAction;
+    }
+
+    isLoadingNarrative = false;
+
+    trendItems = BuildTrend(transactions);
+    trendMax = trendItems.Any() ? trendItems.Max(x => x.Amount) : 0;
+    patternBadges = BuildPatternBadges(transactions, recurringShare);
   }
+
+  private static int BuildHealthScore(decimal income, decimal expenses, decimal remainingBudget, decimal recurringShare)
+  {
+    decimal savingsRate = income <= 0 ? 0 : (income - expenses) / income;
+
+    decimal score = 55m;
+    score += savingsRate * 30m;
+    score += remainingBudget > 0 ? 12m : -12m;
+    score += recurringShare < 0.35m ? 8m : -8m;
+
+    return (int)Math.Clamp(Math.Round(score), 0, 100);
+  }
+
+  private static string BuildHealthSummary(int score)
+    => score switch
+    {
+      >= 80 => "Strong trajectory. Keep automating your best habits.",
+      >= 60 => "Stable, with clear room for one meaningful improvement.",
+      >= 40 => "Risk zone. Tighten one category this week.",
+      _ => "Critical trend. Start with recurring cost cleanup immediately."
+    };
+
+  private static IReadOnlyList<TrendItem> BuildTrend(IReadOnlyList<TransactionDto> transactions)
+  {
+    DateTime now = DateTime.UtcNow;
+    List<TrendItem> result = [];
+
+    for (int i = 5; i >= 0; i--)
+    {
+      DateTime month = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-i);
+      decimal spend = transactions
+        .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
+        .Where(x => x.DateUtc.Year == month.Year && x.DateUtc.Month == month.Month)
+        .Sum(x => x.Amount);
+
+      result.Add(new TrendItem(month.ToString("MMM"), spend));
+    }
+
+    return result;
+  }
+
+  private static IReadOnlyList<TrendBadgeItem> BuildPatternBadges(IReadOnlyList<TransactionDto> transactions, decimal recurringShare)
+  {
+    decimal weekendSpend = transactions
+      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
+      .Where(x => x.DateUtc.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+      .Sum(x => x.Amount);
+
+    decimal totalSpend = transactions
+      .Where(x => x.Type == PocketPilotAI.Core.Domain.Enums.TransactionType.Expense)
+      .Sum(x => x.Amount);
+
+    decimal weekendShare = totalSpend <= 0 ? 0 : weekendSpend / totalSpend;
+
+    TrendBadgeItem weekendBadge = new(
+      $"Weekend spend {(weekendShare * 100m):0}%",
+      weekendShare > 0.38m ? "up" : "neutral");
+
+    TrendBadgeItem recurringBadge = new(
+      $"Recurring {(recurringShare * 100m):0}%",
+      recurringShare > 0.42m ? "down" : "up");
+
+    int uncategorizedCount = transactions.Count(x => string.IsNullOrWhiteSpace(x.CategoryName));
+    TrendBadgeItem qualityBadge = new(
+      uncategorizedCount > 0 ? $"{uncategorizedCount} uncategorized" : "Categories clean",
+      uncategorizedCount > 0 ? "down" : "up");
+
+    return [weekendBadge, recurringBadge, qualityBadge];
+  }
+
+  private sealed record TrendItem(string Label, decimal Amount);
+
+  private sealed record TrendBadgeItem(string Label, string Variant);
 }

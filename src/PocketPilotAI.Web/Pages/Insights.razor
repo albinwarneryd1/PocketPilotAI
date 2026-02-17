@@ -1,163 +1,282 @@
 @page "/insights"
 @inject InsightsApi InsightsApi
+@implements IDisposable
 
-<h2>AI Coach</h2>
-<p class="muted">Concrete, data-driven suggestions from your recent spending.</p>
+<div class="page-stack">
+  <section>
+    <p class="metric-eyebrow">AI Coach</p>
+    <h2>Guided Simulation</h2>
+    <p class="muted">Få insikter och testa åtgärder i realtid innan du ändrar dina vanor.</p>
+  </section>
 
-<div class="action-row">
-  <button class="btn-primary" @onclick="LoadInsights">Generate Leak Insights</button>
-</div>
+  <MetricHero
+    Eyebrow="Scenario impact"
+    Title="What-if impact score"
+    Subtitle="Högre score betyder starkare förbättring av netto och spargrad."
+    Score="impactScore"
+    ValueLabel="@impactSummary"
+    PrimaryActionLabel="Run simulation now"
+    PrimaryActionHref="/insights" />
 
-@if (!cards.Any())
-{
-  <p class="muted">No insights loaded yet.</p>
-}
-else
-{
-  <div class="insight-grid">
-    @foreach (var card in cards)
-    {
-      <article class="insight-card">
-        <h3>@card.Title</h3>
-        <p>@card.Description</p>
-        <p><strong>Action:</strong> @card.SuggestedAction</p>
-        <p><strong>Estimated savings:</strong> @card.EstimatedMonthlySavings.ToString("0") SEK/month</p>
-      </article>
-    }
-  </div>
-}
+  <AIExplanationBlock
+    Title="Monthly AI narrative"
+    Body="@monthlyNarrative"
+    IsLoading="@isLoadingNarrative" />
 
-<section class="panel">
-  <h3>What-if simulation</h3>
-  <p class="muted">Model monthly impact before changing your habits.</p>
-
-  @if (templates.Any())
-  {
-    <div class="preset-row">
-      @foreach (var template in templates)
-      {
-        <button type="button" class="@TemplateClass(template)" @onclick="@(() => ApplyTemplate(template))">
-          <span>@template.Name</span>
-          <small>@template.SuggestedCategory - @template.SuggestedValue.ToString("0.#")</small>
-        </button>
-      }
+  <section class="panel">
+    <div class="list-card-head">
+      <h3>Live what-if simulator</h3>
+      <TrendBadge Label="Live updates" Variant="up" />
     </div>
-  }
 
-  <div class="form-grid">
-    <label>
-      Scenario name
-      <InputText @bind-Value="scenarioName" />
-    </label>
-
-    <label>
-      Year
-      <InputNumber @bind-Value="year" />
-    </label>
-
-    <label>
-      Month
-      <InputNumber @bind-Value="month" />
-    </label>
-
-    <label>
-      Action type
-      <InputSelect @bind-Value="selectedType">
+    @if (templates.Any())
+    {
+      <div class="preset-row">
         @foreach (var template in templates)
         {
-          <option value="@template.ActionType">@template.Name</option>
+          <button type="button" class="@TemplateClass(template)" @onclick="@(() => OnTemplateSelected(template))">
+            <span>@template.Name</span>
+            <small>@template.SuggestedCategory - @template.SuggestedValue.ToString("0.#")</small>
+          </button>
         }
-      </InputSelect>
-    </label>
+      </div>
+    }
 
-    <label>
-      Category
-      <InputText @bind-Value="categoryName" />
-    </label>
+    <div class="form-grid">
+      <label>
+        Scenario name
+        <InputText @bind-Value="ScenarioNameInput" />
+      </label>
 
-    <label>
-      Value
-      <InputNumber @bind-Value="actionValue" />
-    </label>
-  </div>
+      <label>
+        Year
+        <InputNumber @bind-Value="YearInput" />
+      </label>
 
-  <button class="btn-primary" @onclick="RunSimulation">Run simulation</button>
+      <label>
+        Month
+        <InputNumber @bind-Value="MonthInput" />
+      </label>
 
-  @if (simulation is not null)
-  {
-    <div class="whatif-grid">
-      <article class="insight-card">
-        <h4>Baseline</h4>
-        <p>Income: @simulation.Baseline.Income.ToString("0") SEK</p>
-        <p>Expenses: @simulation.Baseline.Expenses.ToString("0") SEK</p>
-        <p>Net: @simulation.Baseline.Net.ToString("0") SEK</p>
-      </article>
+      <label>
+        Action type
+        <InputSelect @bind-Value="SelectedTypeInput">
+          @foreach (var template in templates)
+          {
+            <option value="@template.ActionType">@template.Name</option>
+          }
+        </InputSelect>
+      </label>
 
-      <article class="insight-card">
-        <h4>Simulated</h4>
-        <p>Income: @simulation.Simulated.Income.ToString("0") SEK</p>
-        <p>Expenses: @simulation.Simulated.Expenses.ToString("0") SEK</p>
-        <p>Net: @simulation.Simulated.Net.ToString("0") SEK</p>
-      </article>
+      <label>
+        Category
+        <InputText @bind-Value="CategoryInput" />
+      </label>
 
-      <article class="insight-card">
-        <h4>Delta</h4>
-        <p>Income delta: @simulation.Delta.IncomeDelta.ToString("0") SEK</p>
-        <p>Expense delta: @simulation.Delta.ExpenseDelta.ToString("0") SEK</p>
-        <p>Net delta: @simulation.Delta.NetDelta.ToString("0") SEK</p>
-      </article>
+      <label>
+        Value
+        <InputNumber @bind-Value="ActionValueInput" />
+      </label>
     </div>
 
-    <article class="insight-card" style="margin-top: 0.8rem;">
-      <h4>KPI comparison</h4>
-      @foreach (var row in GetComparisonRows(simulation))
-      {
-        decimal max = Math.Max(Math.Abs(row.Baseline), Math.Abs(row.Simulated));
-        <div class="compare-row">
-          <div class="compare-label">
-            <span>@row.Label</span>
-            <strong>@FormatMetric(row.Simulated, row.IsPercent)</strong>
-          </div>
+    <div class="action-row">
+      <button class="btn-primary" @onclick="RunSimulation">Run simulation</button>
+      <TrendBadge Label="@lastUpdatedLabel" Variant="neutral" />
+    </div>
 
-          <div class="compare-bars">
-            <div class="compare-bar baseline">
-              <div style="width:@BarWidth(row.Baseline, max)"></div>
-            </div>
-            <div class="compare-bar simulated">
-              <div style="width:@BarWidth(row.Simulated, max)"></div>
-            </div>
-          </div>
+    @if (simulation is not null)
+    {
+      <div class="whatif-grid">
+        <article class="surface-card card-rise">
+          <h4>Baseline</h4>
+          <p>Income: @simulation.Baseline.Income.ToString("0") SEK</p>
+          <p>Expenses: @simulation.Baseline.Expenses.ToString("0") SEK</p>
+          <p>Net: @simulation.Baseline.Net.ToString("0") SEK</p>
+        </article>
 
-          <small class="muted">Baseline @FormatMetric(row.Baseline, row.IsPercent) -> Simulated @FormatMetric(row.Simulated, row.IsPercent)</small>
-        </div>
-      }
-    </article>
+        <article class="surface-card card-rise">
+          <h4>Simulated</h4>
+          <p>Income: @simulation.Simulated.Income.ToString("0") SEK</p>
+          <p>Expenses: @simulation.Simulated.Expenses.ToString("0") SEK</p>
+          <p>Net: @simulation.Simulated.Net.ToString("0") SEK</p>
+        </article>
 
-    <article class="insight-card" style="margin-top: 0.8rem;">
-      <h4>Recommendations</h4>
-      <ul>
-        @foreach (var recommendation in simulation.Recommendations)
+        <article class="surface-card card-rise">
+          <h4>Delta</h4>
+          <p>Income delta: @simulation.Delta.IncomeDelta.ToString("0") SEK</p>
+          <p>Expense delta: @simulation.Delta.ExpenseDelta.ToString("0") SEK</p>
+          <p>Net delta: @simulation.Delta.NetDelta.ToString("0") SEK</p>
+        </article>
+      </div>
+
+      <article class="surface-card card-rise">
+        <h4>KPI comparison</h4>
+        @foreach (var row in GetComparisonRows(simulation))
         {
-          <li>@recommendation</li>
+          decimal max = Math.Max(Math.Abs(row.Baseline), Math.Abs(row.Simulated));
+          <div class="compare-row">
+            <div class="compare-label">
+              <span>@row.Label</span>
+              <strong>@FormatMetric(row.Simulated, row.IsPercent)</strong>
+            </div>
+
+            <div class="compare-bars">
+              <div class="compare-bar baseline">
+                <div style="width:@BarWidth(row.Baseline, max)"></div>
+              </div>
+              <div class="compare-bar simulated">
+                <div style="width:@BarWidth(row.Simulated, max)"></div>
+              </div>
+            </div>
+
+            <small class="muted">Baseline @FormatMetric(row.Baseline, row.IsPercent) -> Simulated @FormatMetric(row.Simulated, row.IsPercent)</small>
+          </div>
         }
-      </ul>
-      <p><strong>Explanation:</strong> @simulation.Explanation</p>
-    </article>
-  }
-</section>
+      </article>
+
+      <RecommendationCard
+        Title="Top recommendation"
+        Description="@(simulation.Recommendations.FirstOrDefault() ?? simulation.Explanation)"
+        CtaLabel="Apply as monthly target"
+        CtaHref="/transactions" />
+
+      <AIExplanationBlock Title="Why this scenario works" Body="@simulation.Explanation" />
+    }
+  </section>
+
+  <section class="panel">
+    <div class="list-card-head">
+      <h3>Leak insights</h3>
+      <div class="badge-row">
+        @foreach (var badge in leakBadges)
+        {
+          <TrendBadge Label="@badge.Label" Variant="@badge.Variant" />
+        }
+      </div>
+    </div>
+
+    <div class="scroll-row">
+      @foreach (var card in cards)
+      {
+        <InsightCard Item="card" />
+      }
+    </div>
+  </section>
+</div>
 
 @code {
   private IReadOnlyList<InsightCardDto> cards = [];
   private IReadOnlyList<WhatIfScenarioTemplateDto> templates = [];
   private WhatIfSimulationResultDto? simulation;
 
-  private string scenarioName = "Test Scenario";
+  private IReadOnlyList<BadgeItem> leakBadges = [];
+
+  private string scenarioName = "30-day plan";
   private int year = DateTime.UtcNow.Year;
   private int month = DateTime.UtcNow.Month;
   private WhatIfActionType selectedType = WhatIfActionType.ReduceCategoryPercent;
   private string categoryName = "Eating Out";
   private decimal actionValue = 15;
   private string selectedTemplateName = string.Empty;
+
+  private string monthlyNarrative = "Generating narrative...";
+  private bool isLoadingNarrative = true;
+
+  private int impactScore;
+  private string impactSummary = "No simulation yet.";
+  private string lastUpdatedLabel = "Not simulated";
+
+  private CancellationTokenSource? debounceCts;
+
+  private string ScenarioNameInput
+  {
+    get => scenarioName;
+    set
+    {
+      if (scenarioName == value)
+      {
+        return;
+      }
+
+      scenarioName = value;
+      _ = QueueSimulationAsync();
+    }
+  }
+
+  private int YearInput
+  {
+    get => year;
+    set
+    {
+      if (year == value)
+      {
+        return;
+      }
+
+      year = value;
+      _ = QueueSimulationAsync();
+    }
+  }
+
+  private int MonthInput
+  {
+    get => month;
+    set
+    {
+      if (month == value)
+      {
+        return;
+      }
+
+      month = value;
+      _ = QueueSimulationAsync();
+    }
+  }
+
+  private WhatIfActionType SelectedTypeInput
+  {
+    get => selectedType;
+    set
+    {
+      if (selectedType == value)
+      {
+        return;
+      }
+
+      selectedType = value;
+      _ = QueueSimulationAsync();
+    }
+  }
+
+  private string CategoryInput
+  {
+    get => categoryName;
+    set
+    {
+      if (categoryName == value)
+      {
+        return;
+      }
+
+      categoryName = value;
+      _ = QueueSimulationAsync();
+    }
+  }
+
+  private decimal ActionValueInput
+  {
+    get => actionValue;
+    set
+    {
+      if (actionValue == value)
+      {
+        return;
+      }
+
+      actionValue = value;
+      _ = QueueSimulationAsync();
+    }
+  }
 
   protected override async Task OnInitializedAsync()
   {
@@ -166,16 +285,30 @@ else
     {
       ApplyTemplate(templates[0]);
     }
-  }
 
-  private async Task LoadInsights()
-  {
     cards = await InsightsApi.GetLeakInsightsAsync(new LeakFinderRequest
     {
       FromUtc = DateTime.UtcNow.AddMonths(-1),
       ToUtc = DateTime.UtcNow,
-      MaxSuggestions = 3
+      MaxSuggestions = 5
     });
+
+    leakBadges = BuildLeakBadges(cards);
+
+    IReadOnlyList<InsightCardDto> monthlySummary = await InsightsApi.GetMonthlySummaryAsync(new MonthlySummaryRequest
+    {
+      Year = DateTime.UtcNow.Year,
+      Month = DateTime.UtcNow.Month
+    });
+
+    if (monthlySummary.Count > 0)
+    {
+      monthlyNarrative = monthlySummary[0].Description;
+    }
+
+    isLoadingNarrative = false;
+
+    await RunSimulation();
   }
 
   private async Task RunSimulation()
@@ -199,6 +332,42 @@ else
         }
       ]
     });
+
+    if (simulation is null)
+    {
+      impactScore = 0;
+      impactSummary = "Simulation failed.";
+      lastUpdatedLabel = "Simulation failed";
+      return;
+    }
+
+    impactScore = BuildImpactScore(simulation.Delta.NetDelta, simulation.Delta.SavingsRateDeltaPercent);
+    impactSummary = $"Net change {simulation.Delta.NetDelta:0} SEK, savings delta {simulation.Delta.SavingsRateDeltaPercent:0.0}%";
+    lastUpdatedLabel = $"Updated {DateTime.Now:HH:mm:ss}";
+  }
+
+  private void OnTemplateSelected(WhatIfScenarioTemplateDto template)
+  {
+    ApplyTemplate(template);
+    _ = QueueSimulationAsync();
+  }
+
+  private async Task QueueSimulationAsync()
+  {
+    debounceCts?.Cancel();
+    debounceCts?.Dispose();
+    debounceCts = new CancellationTokenSource();
+
+    try
+    {
+      await Task.Delay(350, debounceCts.Token);
+      await RunSimulation();
+      await InvokeAsync(StateHasChanged);
+    }
+    catch (TaskCanceledException)
+    {
+      // Ignore rapid input churn.
+    }
   }
 
   private void ApplyTemplate(WhatIfScenarioTemplateDto template)
@@ -212,6 +381,15 @@ else
 
   private string TemplateClass(WhatIfScenarioTemplateDto template)
     => template.Name == selectedTemplateName ? "preset-chip selected" : "preset-chip";
+
+  private static int BuildImpactScore(decimal netDelta, decimal savingsRateDelta)
+  {
+    decimal score = 50m;
+    score += Math.Clamp(netDelta / 100m, -25m, 35m);
+    score += Math.Clamp(savingsRateDelta * 2m, -20m, 25m);
+
+    return (int)Math.Clamp(Math.Round(score), 0, 100);
+  }
 
   private static string BarWidth(decimal value, decimal max)
   {
@@ -233,5 +411,31 @@ else
       new("Savings rate", result.Baseline.SavingsRatePercent, result.Simulated.SavingsRatePercent, true)
     ];
 
+  private static IReadOnlyList<BadgeItem> BuildLeakBadges(IReadOnlyList<InsightCardDto> leakCards)
+  {
+    if (leakCards.Count == 0)
+    {
+      return [new BadgeItem("No leaks detected", "up")];
+    }
+
+    decimal totalSavingsPotential = leakCards.Sum(x => x.EstimatedMonthlySavings);
+    decimal avgConfidence = leakCards.Average(x => x.Confidence);
+
+    return
+    [
+      new BadgeItem($"{leakCards.Count} insights", "neutral"),
+      new BadgeItem($"{totalSavingsPotential:0} SEK potential", "up"),
+      new BadgeItem($"{avgConfidence * 100m:0}% confidence", avgConfidence >= 0.7m ? "up" : "neutral")
+    ];
+  }
+
+  public void Dispose()
+  {
+    debounceCts?.Cancel();
+    debounceCts?.Dispose();
+  }
+
   private sealed record ComparisonRow(string Label, decimal Baseline, decimal Simulated, bool IsPercent = false);
+
+  private sealed record BadgeItem(string Label, string Variant);
 }

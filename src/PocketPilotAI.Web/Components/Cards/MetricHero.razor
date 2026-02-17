@@ -1,0 +1,88 @@
+@implements IDisposable
+
+<section class="metric-hero card-rise">
+  <div class="metric-hero-copy">
+    @if (!string.IsNullOrWhiteSpace(Eyebrow))
+    {
+      <p class="metric-eyebrow">@Eyebrow</p>
+    }
+
+    <h2>@Title</h2>
+
+    @if (!string.IsNullOrWhiteSpace(Subtitle))
+    {
+      <p class="muted">@Subtitle</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(PrimaryActionLabel) && !string.IsNullOrWhiteSpace(PrimaryActionHref))
+    {
+      <a class="btn-primary" href="@PrimaryActionHref">@PrimaryActionLabel</a>
+    }
+  </div>
+
+  <div class="metric-hero-value">
+    <div class="score-ring" style="@RingStyle">
+      <div>
+        <strong>@displayScore</strong>
+        <small>/ 100</small>
+      </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(ValueLabel))
+    {
+      <p class="score-label">@ValueLabel</p>
+    }
+  </div>
+</section>
+
+@code {
+  [Parameter] public string Eyebrow { get; set; } = string.Empty;
+
+  [Parameter] public string Title { get; set; } = string.Empty;
+
+  [Parameter] public string Subtitle { get; set; } = string.Empty;
+
+  [Parameter] public int Score { get; set; }
+
+  [Parameter] public string ValueLabel { get; set; } = string.Empty;
+
+  [Parameter] public string PrimaryActionLabel { get; set; } = string.Empty;
+
+  [Parameter] public string PrimaryActionHref { get; set; } = string.Empty;
+
+  private int displayScore;
+  private CancellationTokenSource? animationCts;
+
+  private string RingStyle => $"--score:{Math.Clamp(displayScore, 0, 100)}%;";
+
+  protected override async Task OnParametersSetAsync()
+  {
+    int target = Math.Clamp(Score, 0, 100);
+
+    animationCts?.Cancel();
+    animationCts?.Dispose();
+    animationCts = new CancellationTokenSource();
+
+    CancellationToken token = animationCts.Token;
+    int start = displayScore;
+    const int steps = 18;
+
+    for (int i = 1; i <= steps; i++)
+    {
+      token.ThrowIfCancellationRequested();
+
+      decimal t = i / (decimal)steps;
+      displayScore = (int)Math.Round(start + ((target - start) * t));
+      await InvokeAsync(StateHasChanged);
+      await Task.Delay(20, token);
+    }
+
+    displayScore = target;
+  }
+
+  public void Dispose()
+  {
+    animationCts?.Cancel();
+    animationCts?.Dispose();
+  }
+}

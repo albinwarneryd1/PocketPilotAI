@@ -1,19 +1,19 @@
 .brand {
   color: #f6fbff;
   display: flex;
-  gap: 0.75rem;
+  gap: 0.8rem;
   align-items: center;
-  padding: 1.1rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1.5rem 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .brand-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   display: inline-grid;
   place-items: center;
-  background: linear-gradient(140deg, #3fca98, #2ea8db);
+  background: linear-gradient(140deg, #21b397, #178dbf);
   color: #073447;
   font-weight: 700;
 }
@@ -21,26 +21,33 @@
 .nav-links {
   display: flex;
   flex-direction: column;
-  padding: 1rem 0.75rem;
+  gap: 0.25rem;
+  padding: 1.2rem 0.9rem;
 }
 
 .nav-links a {
-  color: #b7d1e3;
+  color: #c4d9e8;
   text-decoration: none;
-  padding: 0.6rem 0.8rem;
-  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
   font-weight: 500;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
 .nav-links a.active {
-  background: rgba(63, 202, 152, 0.18);
+  background: rgba(33, 179, 151, 0.2);
   color: #f0fff8;
 }
 
+.nav-links a:hover {
+  transform: translateX(2px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .session-box {
-  margin: 0.75rem;
-  padding: 0.75rem;
-  border-radius: 10px;
+  margin: 1rem;
+  padding: 0.9rem;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.08);
   color: #ecf7ff;
   display: grid;
@@ -49,9 +56,9 @@
 
 .btn-ghost {
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   background: transparent;
   color: #ecf7ff;
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.8rem;
   cursor: pointer;
 }

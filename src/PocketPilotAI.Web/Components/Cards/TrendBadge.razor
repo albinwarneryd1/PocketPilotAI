@@ -1,0 +1,14 @@
+<span class="trend-badge @ClassName">@Label</span>
+
+@code {
+  [Parameter] public string Label { get; set; } = string.Empty;
+
+  [Parameter] public string Variant { get; set; } = "neutral";
+
+  private string ClassName => Variant.ToLowerInvariant() switch
+  {
+    "up" => "up",
+    "down" => "down",
+    _ => "neutral"
+  };
+}

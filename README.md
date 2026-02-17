@@ -6,9 +6,6 @@
 
 AI-powered personal finance assistant built with .NET MAUI + Blazor.
 
-<p align="center">
-  <img src="assets/screenshots/hero-overview.png" width="900" alt="PocketPilotAI overview hero"/>
-</p>
 
 Track spending. Simulate scenarios. Make better financial decisions.
 

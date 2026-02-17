@@ -2,20 +2,16 @@
   <DataAnnotationsValidator />
 
   <div class="form-grid">
-    <PremiumFormField Label="Step 1: Account ID" HelpText="Use an existing account GUID from your profile data.">
-      <InputText @bind-Value="model.AccountId" placeholder="8f29..." />
+    <PremiumFormField Label="Account ID">
+      <InputText @bind-Value="model.AccountId" placeholder="Account GUID" />
     </PremiumFormField>
 
-    <PremiumFormField Label="Step 2: Merchant" HelpText="Use a clear merchant name for better AI categorization.">
-      <InputText @bind-Value="model.MerchantName" placeholder="ICA Maxi" />
+    <PremiumFormField Label="Merchant">
+      <InputText @bind-Value="model.MerchantName" placeholder="Merchant name" />
     </PremiumFormField>
 
     <PremiumFormField Label="Amount (SEK)">
       <InputNumber @bind-Value="model.Amount" />
-    </PremiumFormField>
-
-    <PremiumFormField Label="Currency">
-      <InputText @bind-Value="model.Currency" />
     </PremiumFormField>
 
     <PremiumFormField Label="Date">
@@ -30,16 +26,20 @@
       </InputSelect>
     </PremiumFormField>
 
-    <PremiumFormField Label="Notes">
-      <InputText @bind-Value="model.Notes" placeholder="Optional context" />
+    <PremiumFormField Label="Currency">
+      <InputText @bind-Value="model.Currency" />
     </PremiumFormField>
 
-    <PremiumFormField Label="Recurring transaction">
+    <PremiumFormField Label="Notes">
+      <InputText @bind-Value="model.Notes" placeholder="Optional note" />
+    </PremiumFormField>
+
+    <PremiumFormField Label="Recurring">
       <InputCheckbox @bind-Value="model.IsRecurring" />
     </PremiumFormField>
   </div>
 
-  <div class="action-row" style="justify-content:flex-end;">
+  <div class="action-row form-sticky-submit">
     <button class="btn-primary" type="submit">Save transaction</button>
   </div>
 

@@ -2,30 +2,21 @@
 @inject TransactionsApi TransactionsApi
 @inject NavigationManager NavigationManager
 
-<div class="page-stack">
+<div class="page-stack decision-flow">
   <section class="page-head">
     <div class="page-head-copy">
       <p class="page-kicker">Add transaction</p>
-      <h2 class="page-title">Capture spending in seconds</h2>
-      <p class="muted">One clean flow: details, review, save.</p>
+      <h2 class="page-title">One focused entry flow</h2>
+      <p class="muted">Add clean data now, get better insights later.</p>
     </div>
 
-    <a class="btn-secondary" href="/transactions">Back to feed</a>
+    <a class="btn-secondary" href="/transactions">Back to transactions</a>
   </section>
 
   <HeroCard AdditionalClass="card-rise">
-    <div class="section-header">
-      <div class="section-header-copy">
-        <h3>Fast entry flow</h3>
-        <p class="muted">Use clear merchant and category context for better AI recommendations.</p>
-      </div>
-    </div>
-
-    <div class="badge-row">
-      <TrendBadge Label="Step 1: Details" Variant="up" />
-      <TrendBadge Label="Step 2: Review" Variant="neutral" />
-      <TrendBadge Label="Step 3: Save" Variant="neutral" />
-    </div>
+    <p class="decision-kicker">Step by step</p>
+    <h3>Enter details, review, save</h3>
+    <p class="muted">Keep merchant and notes clear so the AI coach can explain patterns better.</p>
   </HeroCard>
 
   <ListCard AdditionalClass="card-rise">
